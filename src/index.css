@@ -1,0 +1,78 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;800&family=Space+Mono:wght@400;700&display=swap');
+
+:root {
+  --primary: #0a2342;
+  --accent: #d4af37;
+  --secondary: #f5f1e8;
+  --text-dark: #1a1a1a;
+  --text-light: #f5f1e8;
+  --border: #d4af37;
+  --gradient-warm: linear-gradient(135deg, #0a2342 0%, #1a3d5c 100%);
+  --gradient-accent: linear-gradient(135deg, #d4af37 0%, #e8c547 100%);
+
+  font-family: 'Space Mono', monospace;
+  color: var(--text-dark);
+  background: var(--secondary);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 100px;
+}
+
+body {
+  min-width: 320px;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+a {
+  color: inherit;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+h1,
+h2,
+h3,
+.logo {
+  font-family: 'Playfair Display', Georgia, serif;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--primary);
+}

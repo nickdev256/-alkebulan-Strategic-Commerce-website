@@ -1,0 +1,148 @@
+
+.about-page {
+  background: var(--secondary);
+}
+
+.about-hero {
+  padding: 5rem 5%;
+  min-height: 350px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  color: var(--text-light);
+  background: var(--gradient-warm);
+}
+
+.about-hero h1 {
+  margin-bottom: 1rem;
+  font-size: clamp(2.3rem, 5vw, 3.2rem);
+}
+
+.about-hero > p:last-child {
+  max-width: 700px;
+}
+
+.about-section {
+  max-width: 1200px;
+  margin: auto;
+  padding: 5rem 5%;
+}
+
+.about-section > h2,
+.about-copy h2,
+.about-heading {
+  margin-bottom: 1rem;
+  color: var(--primary);
+  font-size: 2rem;
+}
+
+.about-copy {
+  max-width: 900px;
+  margin: 0 auto 3rem;
+}
+
+.about-copy p,
+.about-section > p {
+  margin-bottom: 1rem;
+  color: #555;
+}
+
+.about-copy ul {
+  padding-left: 1.5rem;
+  color: #555;
+}
+
+.about-copy li {
+  margin-bottom: 0.6rem;
+}
+
+.about-heading {
+  margin-top: 3rem;
+  text-align: center;
+}
+
+.about-intro {
+  max-width: 750px;
+  margin: 0 auto 2.5rem;
+  text-align: center;
+}
+
+.about-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.about-card {
+  padding: 2rem;
+  background: #fff;
+  border: 2px solid var(--primary);
+  transition: 0.3s ease;
+}
+
+.about-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px rgba(10, 35, 66, 0.1);
+}
+
+.about-card h3 {
+  margin-bottom: 0.8rem;
+  color: var(--primary);
+  font-size: 1.3rem;
+}
+
+.about-card p {
+  color: #555;
+  font-size: 0.92rem;
+}
+
+.about-navigation {
+  padding: 4rem 5%;
+  text-align: center;
+  background: #eee7d9;
+}
+
+.about-navigation h2 {
+  margin-bottom: 1.5rem;
+  color: var(--primary);
+  font-size: 2rem;
+}
+
+.about-page-links {
+  max-width: 900px;
+  margin: 0 auto 2rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.about-page-links a {
+  padding: 1rem;
+  background: #fff;
+  border-bottom: 2px solid var(--accent);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.about-page-links a:hover {
+  color: var(--primary);
+  background: #f9f2dc;
+}
+
+.about-page-links span {
+  color: #a47d0b;
+}
+
+@media (max-width: 768px) {
+  .about-section {
+    padding: 3.5rem 6%;
+  }
+
+  .about-card {
+    padding: 1.5rem;
+  }
+}
