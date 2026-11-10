@@ -1,0 +1,99 @@
+.page-hero {
+  position: relative;
+  padding-top: 72px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 85% 0%, rgba(201, 162, 74, 0.16), transparent 45%),
+    linear-gradient(160deg, var(--navy-900), var(--navy-950));
+  color: rgba(255, 255, 255, 0.75);
+}
+
+/* Faint grid texture */
+.page-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: linear-gradient(to bottom, black, transparent 90%);
+  pointer-events: none;
+}
+
+.page-hero > .container {
+  position: relative;
+  padding-bottom: 72px;
+}
+
+.page-hero h1 {
+  max-width: 820px;
+  color: var(--white);
+  font-size: clamp(2.2rem, 5vw, 3.5rem);
+  margin-bottom: 18px;
+}
+
+.page-hero-intro {
+  max-width: 640px;
+  font-size: 1.125rem;
+}
+
+/* Golden sub-page bar (About and Expertise) */
+.page-tabs {
+  position: relative;
+  background: linear-gradient(90deg, #a8842f, #d4af55 25%, #f3dc9a 50%, #d4af55 75%, #a8842f);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    0 10px 24px -14px rgba(201, 162, 74, 0.8);
+}
+
+.page-tabs nav {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.page-tabs a {
+  flex-shrink: 0;
+  padding: 9px 20px;
+  border-radius: 999px;
+  color: var(--navy-950);
+  font-size: 1rem;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.page-tabs a:hover {
+  background: rgba(7, 19, 36, 0.12);
+}
+
+.page-tabs a.active {
+  background: var(--navy-950);
+  color: var(--gold-light);
+  box-shadow: 0 6px 16px -8px rgba(7, 19, 36, 0.8);
+}
+
+@media (max-width: 640px) {
+  .page-hero {
+    padding-top: 48px;
+  }
+
+  .page-hero > .container {
+    padding-bottom: 48px;
+  }
+
+  .page-tabs nav {
+    flex-wrap: wrap;
+    gap: 6px 4px;
+  }
+
+  .page-tabs a {
+    padding: 8px 14px;
+    font-size: 0.9rem;
+  }
+}

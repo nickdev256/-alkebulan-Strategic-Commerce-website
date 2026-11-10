@@ -1,24 +1,47 @@
-
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;800&family=Space+Mono:wght@400;700&display=swap');
+/* =========================================================
+   ALKEBULAN GLOBAL — DESIGN SYSTEM
+   Colours, type and the shared building blocks every page uses.
+   ========================================================= */
 
 :root {
-  --primary: #0a2342;
-  --accent: #d4af37;
-  --secondary: #f5f1e8;
-  --text-dark: #1a1a1a;
-  --text-light: #f5f1e8;
-  --border: #d4af37;
-  --gradient-warm: linear-gradient(135deg, #0a2342 0%, #1a3d5c 100%);
-  --gradient-accent: linear-gradient(135deg, #d4af37 0%, #e8c547 100%);
+  /* Colours */
+  --navy-950: #071324;
+  --navy-900: #0b1a2e;
+  --navy-800: #11243f;
+  --navy-700: #1c3557;
+  --gold: #c9a24a;
+  --gold-light: #e4c77f;
+  --gold-dark: #8a6a1f; /* gold for small text on light backgrounds */
+  --gold-hover: #b08a2c; /* hover gold on light backgrounds */
+  --cream: #f7f4ee;
+  --sand: #efe9dd;
+  --white: #ffffff;
+  --ink: #142033;
+  --muted: #5b6676;
+  --line: #e4ddcf;
+  --line-dark: rgba(228, 199, 127, 0.18);
 
-  font-family: 'Space Mono', monospace;
-  color: var(--text-dark);
-  background: var(--secondary);
+  /* Shape and depth */
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow-sm: 0 1px 2px rgba(11, 26, 46, 0.06);
+  --shadow: 0 12px 32px -12px rgba(11, 26, 46, 0.18);
+
+  /* Type: Times New Roman everywhere (built into every device, nothing to download) */
+  --font-serif: 'Times New Roman', Times, 'Liberation Serif', 'Nimbus Roman', serif;
+  --font-sans: var(--font-serif);
+
+  font-family: var(--font-sans);
+  color: var(--ink);
+  background: var(--cream);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
 }
 
-* {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -26,12 +49,12 @@
 
 html {
   scroll-behavior: smooth;
-  scroll-padding-top: 100px;
+  scroll-padding-top: 90px;
 }
 
 body {
-  min-width: 320px;
-  line-height: 1.6;
+  font-size: 1.0625rem; /* Times reads small, so the base size is a touch larger */
+  line-height: 1.7;
   overflow-x: hidden;
 }
 
@@ -40,39 +63,564 @@ input,
 select,
 textarea {
   font: inherit;
-}
-
-button,
-a {
-  -webkit-tap-highlight-color: transparent;
+  color: inherit;
 }
 
 a {
   color: inherit;
+  -webkit-tap-highlight-color: transparent;
 }
 
-img {
+img,
+svg {
   display: block;
   max-width: 100%;
 }
 
 h1,
 h2,
-h3,
-.logo {
-  font-family: 'Playfair Display', Georgia, serif;
+h3 {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  color: var(--navy-900);
 }
 
-button:focus-visible,
-a:focus-visible,
-input:focus-visible,
-select:focus-visible,
-textarea:focus-visible {
-  outline: 3px solid var(--accent);
+:focus-visible {
+  outline: 3px solid var(--gold);
   outline-offset: 3px;
 }
 
 ::selection {
-  background: var(--accent);
-  color: var(--primary);
+  background: var(--gold-light);
+  color: var(--navy-900);
+}
+
+/* ---------- App shell ---------- */
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+main {
+  flex: 1;
+}
+
+main:focus {
+  outline: none;
+}
+
+/* Hidden until a keyboard user presses Tab */
+.skip-link {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 2000;
+  padding: 12px 20px;
+  border-radius: var(--radius-sm);
+  background: var(--gold);
+  color: var(--navy-950);
+  font-weight: 700;
+  text-decoration: none;
+  transform: translateY(-200%);
+  transition: transform 0.2s ease;
+}
+
+.skip-link:focus {
+  transform: none;
+}
+
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* ---------- Sections ---------- */
+
+.section {
+  padding: 96px 0;
+}
+
+.section--white {
+  background: var(--white);
+}
+
+.section--sand {
+  background: var(--sand);
+}
+
+.section--dark {
+  background: var(--navy-900);
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.section--dark h2,
+.section--dark h3 {
+  color: var(--white);
+}
+
+.section-head {
+  max-width: 680px;
+  margin-bottom: 48px;
+}
+
+.section-head--center {
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+
+.section-head h2,
+.not-found-title {
+  font-size: clamp(1.9rem, 3.4vw, 2.6rem);
+  margin-bottom: 16px;
+}
+
+.section-head p {
+  color: var(--muted);
+  font-size: 1.075rem;
+}
+
+.section--dark .section-head p {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  color: var(--gold-dark);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.section--dark .eyebrow,
+.page-hero .eyebrow {
+  color: var(--gold-light);
+}
+
+.lead {
+  font-size: 1.125rem;
+  color: var(--muted);
+}
+
+/* ---------- Buttons ---------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 12px 24px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+}
+
+.btn--primary {
+  background: var(--gold);
+  color: var(--navy-950);
+}
+
+.btn--primary:hover {
+  background: var(--gold-light);
+}
+
+.btn--ghost {
+  border-color: rgba(255, 255, 255, 0.35);
+  color: var(--white);
+}
+
+.btn--ghost:hover {
+  border-color: var(--gold-light);
+  color: var(--gold-light);
+}
+
+.btn--dark {
+  background: var(--navy-900);
+  color: var(--white);
+}
+
+.btn--dark:hover {
+  background: var(--gold);
+  color: var(--navy-950);
+}
+
+.text-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--navy-900);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  border-bottom: 1px solid var(--gold);
+  padding-bottom: 2px;
+}
+
+.text-link:hover {
+  color: var(--gold-hover);
+}
+
+.text-link--light {
+  color: var(--gold-light);
+}
+
+.text-link--light:hover {
+  color: var(--gold);
+  border-color: var(--gold-light);
+}
+
+/* ---------- Grids ---------- */
+
+.grid {
+  display: grid;
+  gap: 24px;
+}
+
+.grid--2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.grid--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 64px;
+  align-items: center;
+}
+
+.split--top {
+  align-items: start;
+}
+
+/* ---------- Cards ---------- */
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 32px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  transition:
+    border-color 0.25s ease,
+    box-shadow 0.25s ease,
+    transform 0.25s ease;
+}
+
+/* Card titles turn gold on hover */
+.card:hover h3 {
+  color: var(--gold-hover);
+}
+
+.card--dark:hover h3 {
+  color: var(--gold-light);
+}
+
+.card:hover {
+  border-color: rgba(201, 162, 74, 0.6);
+  box-shadow: var(--shadow);
+  transform: translateY(-3px);
+}
+
+.card h3 {
+  font-size: 1.25rem;
+  margin-bottom: 10px;
+  transition: color 0.25s ease;
+}
+
+.card p {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.card .text-link {
+  margin-top: auto;
+  padding-top: 20px;
+  align-self: flex-start;
+  border-bottom: 0;
+}
+
+.card--dark {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: var(--line-dark);
+  box-shadow: none;
+}
+
+.card--dark:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(228, 199, 127, 0.45);
+  box-shadow: none;
+}
+
+.card--dark p {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.icon-badge {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 22px;
+  border-radius: 10px;
+  background: rgba(201, 162, 74, 0.12);
+  color: var(--gold-dark);
+}
+
+.card--dark .icon-badge {
+  background: rgba(228, 199, 127, 0.1);
+  color: var(--gold-light);
+}
+
+.card-number {
+  margin-bottom: 18px;
+  color: var(--gold);
+  font-family: var(--font-serif);
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.tag {
+  align-self: flex-start;
+  margin-bottom: 18px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(201, 162, 74, 0.12);
+  color: var(--gold-dark);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ---------- Checklist ---------- */
+
+.checklist {
+  list-style: none;
+  display: grid;
+  gap: 14px;
+}
+
+.checklist li {
+  position: relative;
+  padding-left: 32px;
+  color: var(--muted);
+}
+
+.checklist li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.3em;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(201, 162, 74, 0.15)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238a6a1f' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E")
+    center / 11px no-repeat;
+}
+
+/* ---------- Prose ---------- */
+
+.prose h2 {
+  font-size: clamp(1.75rem, 3vw, 2.25rem);
+  margin-bottom: 20px;
+}
+
+.prose p {
+  color: var(--muted);
+  margin-bottom: 16px;
+}
+
+/* ---------- Scroll animations (classes added by ScrollToTop.jsx) ---------- */
+
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition:
+    opacity 0.7s cubic-bezier(0.2, 0.7, 0.2, 1),
+    transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1),
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
+  transition-delay: var(--reveal-delay, 0ms), var(--reveal-delay, 0ms), 0ms, 0ms;
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* Cards keep their lift on hover after revealing */
+.card.reveal.is-visible:hover {
+  transform: translateY(-4px);
+  transition-delay: 0ms;
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 960px) {
+  .grid--3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .split {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+}
+
+@media (max-width: 640px) {
+  .section {
+    padding: 64px 0;
+  }
+
+  .container {
+    padding: 0 20px;
+  }
+
+  .grid--2,
+  .grid--3 {
+    grid-template-columns: 1fr;
+  }
+
+  .card {
+    padding: 26px;
+  }
+
+  .section-head {
+    margin-bottom: 36px;
+  }
+}
+
+/* Very small phones (older and compact models) */
+@media (max-width: 360px) {
+  body {
+    font-size: 1rem;
+  }
+
+  .container {
+    padding: 0 16px;
+  }
+
+  .card {
+    padding: 22px 18px;
+  }
+
+  .btn {
+    padding: 12px 18px;
+  }
+}
+
+/* Large desktop and 4K screens: scale everything up a little */
+@media (min-width: 1800px) {
+  html {
+    font-size: 112.5%;
+  }
+
+  .container {
+    max-width: 1320px;
+  }
+}
+
+@media (min-width: 2400px) {
+  html {
+    font-size: 125%;
+  }
+}
+
+/* Notched phones in landscape: keep content clear of the notch */
+@supports (padding: max(0px)) {
+  .container {
+    padding-left: max(var(--gutter, 24px), env(safe-area-inset-left));
+    padding-right: max(var(--gutter, 24px), env(safe-area-inset-right));
+  }
+
+  @media (max-width: 640px) {
+    .container {
+      --gutter: 20px;
+    }
+  }
+
+  @media (max-width: 360px) {
+    .container {
+      --gutter: 16px;
+    }
+  }
+}
+
+/* Touch screens: no hover lift that "sticks" after a tap */
+@media (hover: none) {
+  .card:hover,
+  .card.reveal.is-visible:hover,
+  .btn:hover {
+    transform: none;
+  }
+}
+
+/* Printing: plain, readable pages without menus or animation */
+@media print {
+  .site-header,
+  .page-tabs,
+  .hero-visual,
+  .cta-section,
+  .site-footer {
+    display: none !important;
+  }
+
+  .reveal {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .hero,
+  .page-hero,
+  .section--dark {
+    background: none !important;
+    color: #000 !important;
+  }
+
+  .hero h1,
+  .page-hero h1,
+  .section--dark h2,
+  .section--dark h3 {
+    color: #000 !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
