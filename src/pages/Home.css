@@ -1,533 +1,134 @@
+/* ---------- Brand pillars strip ---------- */
 
-/* =========================================
-   HOMEPAGE — ORIGINAL AG DESIGN
-   ========================================= */
-
-.home-page {
-  --home-primary: #0a2342;
-  --home-accent: #d4af37;
-  --home-secondary: #f5f1e8;
-  --home-text-light: #f5f1e8;
-  --home-gradient-warm: linear-gradient(
-    135deg,
-    #0a2342 0%,
-    #1a3d5c 100%
-  );
-  --home-gradient-accent: linear-gradient(
-    135deg,
-    #d4af37 0%,
-    #e8c547 100%
-  );
-
-  width: 100%;
-  overflow: hidden;
-  background: var(--home-secondary);
-  color: #1a1a1a;
-  font-family: 'Space Mono', monospace;
-  line-height: 1.6;
+.pillars {
+  background: var(--navy-900);
+  border-top: 1px solid rgba(228, 199, 127, 0.15);
+  border-bottom: 1px solid rgba(228, 199, 127, 0.15);
 }
 
-.home-page *,
-.home-page *::before,
-.home-page *::after {
-  box-sizing: border-box;
-}
-
-/* =========================================
-   HERO
-   ========================================= */
-
-.home-hero {
-  position: relative;
+.pillars .container {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   justify-content: center;
-  align-items: center;
-  min-height: 600px;
-  padding: 8rem 5% 6rem;
-  overflow: hidden;
-  isolation: isolate;
-  text-align: center;
-  color: var(--home-text-light);
-  background: var(--home-gradient-warm);
+  row-gap: 10px;
+  padding-top: 24px;
+  padding-bottom: 24px;
 }
 
-.home-hero::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  right: 0;
-  z-index: -1;
-  width: 500px;
-  height: 500px;
-  border-radius: 50%;
-  pointer-events: none;
-  background: radial-gradient(
-    circle,
-    rgba(212, 175, 55, 0.1) 0%,
-    transparent 70%
-  );
-  animation: home-float 6s ease-in-out infinite;
-}
-
-.home-hero-content {
-  position: relative;
-  z-index: 1;
-  width: 100%;
-  max-width: 1000px;
-  animation: home-slide-up 0.8s ease-out both;
-}
-
-.home-hero-content h1 {
-  margin: 0 0 1rem;
-  color: var(--home-text-light);
-  font-family: 'Playfair Display', serif;
-  font-size: 3.5rem;
-  font-weight: 800;
-  letter-spacing: -2px;
-  line-height: 1.1;
-}
-
-.home-hero-content p {
-  max-width: 700px;
-  margin: 0 auto 2rem;
-  color: var(--home-text-light);
-  font-family: 'Space Mono', monospace;
-  font-size: 1.2rem;
-  line-height: 1.7;
-  opacity: 0.95;
-}
-
-.home-cta-button {
-  display: inline-block;
-  padding: 0.9rem 2.5rem;
-  border: 2px solid var(--home-accent);
-  background: var(--home-accent);
-  color: var(--home-primary);
-  font-family: 'Space Mono', monospace;
-  font-size: 0.9rem;
-  font-weight: 700;
-  letter-spacing: 2px;
-  text-align: center;
-  text-decoration: none;
+.pillars span {
+  padding: 0 clamp(14px, 3.5vw, 40px);
+  color: var(--gold-light);
+  font-size: clamp(0.85rem, 1.6vw, 1.1rem);
+  letter-spacing: 0.3em;
   text-transform: uppercase;
-  cursor: pointer;
-  transition:
-    background 0.3s ease,
-    color 0.3s ease,
-    transform 0.3s ease,
-    box-shadow 0.3s ease;
 }
 
-.home-cta-button:hover {
+/* Gold divider between pillars */
+.pillars span + span {
+  border-left: 1px solid rgba(228, 199, 127, 0.4);
+}
+
+/* ---------- Section heading with side link ---------- */
+
+.home-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 48px;
+}
+
+.home-head .section-head {
+  margin-bottom: 0;
+}
+
+.home-head .text-link {
+  flex-shrink: 0;
+  margin-bottom: 6px;
+}
+
+/* ---------- Sectors ---------- */
+
+.sector-more {
+  justify-content: center;
   background: transparent;
-  color: var(--home-accent);
-  transform: translateY(-3px);
-  box-shadow: 0 8px 20px rgba(212, 175, 55, 0.3);
+  border-style: dashed;
+  box-shadow: none;
+  text-decoration: none;
 }
 
-/* =========================================
-   CORE SECTORS
-   ========================================= */
-
-.home-sectors-section {
-  padding: 6rem 5%;
-  background: var(--home-secondary);
+.sector-more .text-link {
+  margin-top: 16px;
+  align-self: flex-start;
 }
 
-.home-section-header {
-  margin-bottom: 4rem;
-  text-align: center;
+/* ---------- Services ---------- */
+
+.services-intro {
+  position: sticky;
+  top: 120px;
 }
 
-.home-section-header h2 {
-  margin: 0 0 1rem;
-  color: var(--home-primary);
-  font-family: 'Playfair Display', serif;
-  font-size: 2.8rem;
-  font-weight: 700;
-  letter-spacing: -1px;
-  line-height: 1.2;
+.services-intro h2 {
+  font-size: clamp(1.9rem, 3.4vw, 2.6rem);
+  margin-bottom: 16px;
 }
 
-.home-section-header p {
-  max-width: 600px;
-  margin: 0 auto;
-  color: #666;
-  font-size: 1.1rem;
-  line-height: 1.7;
+.services-intro .lead {
+  margin-bottom: 32px;
 }
 
-.home-sectors-grid {
-  display: grid;
-  grid-template-columns: repeat(
-    auto-fit,
-    minmax(min(100%, 280px), 1fr)
-  );
-  gap: 2rem;
-  margin-bottom: 3rem;
+.service-steps {
+  list-style: none;
+  counter-reset: step;
 }
 
-.home-sector-card {
+.service-steps li {
   position: relative;
-  padding: 2rem;
-  overflow: hidden;
-  border: 2px solid var(--home-primary);
-  background: #fff;
-  cursor: pointer;
-  transition:
-    border-color 0.4s ease,
-    box-shadow 0.4s ease,
-    transform 0.4s ease;
+  padding: 28px 0 28px 64px;
+  border-top: 1px solid var(--line);
+  counter-increment: step;
 }
 
-.home-sector-card::before {
-  content: '';
+.service-steps li:last-child {
+  border-bottom: 1px solid var(--line);
+}
+
+.service-steps li::before {
+  content: counter(step, decimal-leading-zero);
   position: absolute;
-  top: 0;
-  left: -100%;
-  z-index: 0;
-  width: 100%;
-  height: 100%;
-  background: var(--home-gradient-accent);
-  opacity: 0.1;
-  pointer-events: none;
-  transition: left 0.4s ease;
-}
-
-.home-sector-card:hover {
-  border-color: var(--home-accent);
-  box-shadow: 0 12px 30px rgba(212, 175, 55, 0.2);
-  transform: translateY(-8px);
-}
-
-.home-sector-card:hover::before {
   left: 0;
-}
-
-.home-sector-card h3 {
-  position: relative;
-  z-index: 1;
-  margin: 0 0 0.8rem;
-  color: var(--home-primary);
-  font-family: 'Playfair Display', serif;
-  font-size: 1.4rem;
+  top: 28px;
+  color: var(--gold-dark);
+  font-family: var(--font-serif);
+  font-size: 1.1rem;
   font-weight: 700;
-  line-height: 1.35;
 }
 
-.home-sector-card p {
-  position: relative;
-  z-index: 1;
-  margin: 0;
-  color: #555;
+.service-steps h3 {
+  font-size: 1.2rem;
+  margin-bottom: 8px;
+}
+
+.service-steps p {
+  color: var(--muted);
   font-size: 0.95rem;
-  line-height: 1.6;
 }
 
-/* =========================================
-   WHAT SETS AG APART
-   ========================================= */
-
-.home-differentiators-section {
-  padding: 6rem 5%;
-  background: var(--home-primary);
-  color: var(--home-text-light);
-}
-
-.home-differentiators-section > h2 {
-  margin: 0 0 3rem;
-  color: var(--home-accent);
-  font-family: 'Playfair Display', serif;
-  font-size: 2.8rem;
-  font-weight: 700;
-  letter-spacing: -1px;
-  line-height: 1.2;
-  text-align: center;
-}
-
-.home-differentiators-grid {
-  display: grid;
-  grid-template-columns: repeat(
-    auto-fit,
-    minmax(min(100%, 300px), 1fr)
-  );
-  gap: 2.5rem;
-}
-
-.home-differentiator {
-  padding: 2.5rem;
-  border-left: 4px solid var(--home-accent);
-  background: rgba(212, 175, 55, 0.05);
-  transition:
-    background 0.4s ease,
-    transform 0.4s ease;
-}
-
-.home-differentiator:hover {
-  background: rgba(212, 175, 55, 0.12);
-  transform: translateX(10px);
-}
-
-.home-differentiator h3 {
-  margin: 0 0 1rem;
-  color: var(--home-accent);
-  font-family: 'Playfair Display', serif;
-  font-size: 1.5rem;
-  font-weight: 700;
-  line-height: 1.35;
-}
-
-.home-differentiator p {
-  margin: 0;
-  color: var(--home-text-light);
-  font-size: 0.95rem;
-  line-height: 1.7;
-  opacity: 0.95;
-}
-
-/* =========================================
-   CORE SERVICES
-   ========================================= */
-
-.home-services-section {
-  padding: 6rem 5%;
-  background: var(--home-secondary);
-}
-
-.home-services-section > h2 {
-  margin: 0 0 3rem;
-  color: var(--home-primary);
-  font-family: 'Playfair Display', serif;
-  font-size: 2.8rem;
-  font-weight: 700;
-  letter-spacing: -1px;
-  line-height: 1.2;
-  text-align: center;
-}
-
-.home-services-list {
-  width: 100%;
-  max-width: 900px;
-  margin: 0 auto;
-}
-
-.home-service-item {
-  position: relative;
-  margin-bottom: 1.5rem;
-  padding: 2rem;
-  overflow: hidden;
-  border-top: 3px solid var(--home-accent);
-  background: #fff;
-  transition: box-shadow 0.3s ease;
-}
-
-.home-service-item::after {
-  content: '';
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  width: 0;
-  height: 3px;
-  background: var(--home-primary);
-  transition: width 0.4s ease;
-}
-
-.home-service-item:hover::after {
-  width: 100%;
-}
-
-.home-service-item:hover {
-  box-shadow: 0 8px 22px rgba(10, 35, 66, 0.08);
-}
-
-.home-service-item h3 {
-  margin: 0 0 0.8rem;
-  color: var(--home-primary);
-  font-family: 'Playfair Display', serif;
-  font-size: 1.3rem;
-  font-weight: 700;
-  line-height: 1.4;
-}
-
-.home-service-item p {
-  margin: 0;
-  color: #555;
-  font-size: 0.95rem;
-  line-height: 1.7;
-}
-
-/* =========================================
-   ANIMATIONS
-   ========================================= */
-
-@keyframes home-float {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-
-  50% {
-    transform: translateY(30px);
+@media (max-width: 960px) {
+  .services-intro {
+    position: static;
   }
 }
 
-@keyframes home-slide-up {
-  from {
-    opacity: 0;
-    transform: translateY(40px);
+@media (max-width: 640px) {
+  .home-head {
+    flex-direction: column;
+    align-items: flex-start;
+    margin-bottom: 36px;
   }
 
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* =========================================
-   RESPONSIVE LAYOUT
-   ========================================= */
-
-@media (max-width: 768px) {
-  .home-hero {
-    min-height: 450px;
-    padding: 4rem 5% 3rem;
-  }
-
-  .home-hero-content h1 {
-    font-size: 2.2rem;
-    letter-spacing: -1px;
-  }
-
-  .home-hero-content p {
-    font-size: 1rem;
-  }
-
-  .home-section-header h2,
-  .home-differentiators-section > h2,
-  .home-services-section > h2 {
-    font-size: 2rem;
-  }
-
-  .home-sectors-section,
-  .home-differentiators-section,
-  .home-services-section {
-    padding: 4rem 5%;
-  }
-
-  .home-section-header {
-    margin-bottom: 2.5rem;
-  }
-
-  .home-sectors-grid,
-  .home-differentiators-grid {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
-  }
-
-  .home-differentiator {
-    padding: 2rem;
-  }
-
-  .home-differentiator:hover {
-    transform: translateX(4px);
-  }
-}
-
-@media (max-width: 480px) {
-  .home-hero {
-    min-height: 420px;
-    padding: 4rem 6%;
-  }
-
-  .home-hero-content h1 {
-    font-size: 2rem;
-    line-height: 1.2;
-  }
-
-  .home-hero-content p {
-    font-size: 0.9rem;
-    line-height: 1.7;
-  }
-
-  .home-cta-button {
-    padding: 0.85rem 1.5rem;
-    font-size: 0.8rem;
-    letter-spacing: 1.5px;
-  }
-
-  .home-sectors-section,
-  .home-differentiators-section,
-  .home-services-section {
-    padding: 3.5rem 6%;
-  }
-
-  .home-section-header h2,
-  .home-differentiators-section > h2,
-  .home-services-section > h2 {
-    font-size: 1.8rem;
-  }
-
-  .home-section-header p {
-    font-size: 0.95rem;
-  }
-
-  .home-sector-card,
-  .home-differentiator,
-  .home-service-item {
-    padding: 1.5rem;
-  }
-
-  .home-sector-card h3,
-  .home-differentiator h3 {
-    font-size: 1.25rem;
-  }
-
-  .home-service-item h3 {
-    font-size: 1.15rem;
-  }
-}
-
-/* Respect visitors who prefer reduced motion. */
-@media (prefers-reduced-motion: reduce) {
-  .home-page *,
-  .home-page *::before,
-  .home-page *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    scroll-behavior: auto !important;
-    transition-duration: 0.01ms !important;
-  }
-}
-
-/* Homepage bottom call-to-action */
-
-.home-bottom-cta {
-  max-width: 900px;
-  margin: 4rem auto 0;
-  padding: 3rem 2rem;
-  border: 1px solid #d4af37;
-  background: #0a2342;
-  color: #f5f1e8;
-  text-align: center;
-}
-
-.home-bottom-cta h2 {
-  margin: 0 0 1rem;
-  color: #d4af37;
-  font-family: 'Playfair Display', Georgia, serif;
-  font-size: clamp(1.7rem, 4vw, 2.4rem);
-}
-
-.home-bottom-cta p {
-  max-width: 650px;
-  margin: 0 auto 2rem;
-  color: #f5f1e8;
-  line-height: 1.8;
-}
-
-@media (max-width: 480px) {
-  .home-bottom-cta {
-    padding: 2rem 1.25rem;
+  .service-steps li {
+    padding-left: 48px;
   }
 }
