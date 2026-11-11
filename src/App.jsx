@@ -18,7 +18,6 @@ import Portfolio from './pages/Portfolio.jsx';
 import CSR from './pages/CSR.jsx';
 import Contact from './pages/Contact.jsx';
 
-
 // ==========================================
 // ALKEBULAN GLOBAL WEBSITE SEO CONFIGURATION
 // ==========================================
@@ -128,6 +127,24 @@ const seoConfig = {
 };
 
 // ==========================================
+// SEO META TAG HELPER
+// ==========================================
+
+function updateMeta(attribute, key, content) {
+  let element = document.head.querySelector(
+    `meta[${attribute}="${key}"]`
+  );
+
+  if (!element) {
+    element = document.createElement('meta');
+    element.setAttribute(attribute, key);
+    document.head.appendChild(element);
+  }
+
+  element.setAttribute('content', content);
+}
+
+// ==========================================
 // DYNAMIC SEO COMPONENT
 // ==========================================
 
@@ -135,6 +152,7 @@ function SEO() {
   const location = useLocation();
 
   useEffect(() => {
+    // Normalize URLs and preserve the homepage as "/".
     const pathname =
       location.pathname.replace(/\/+$/, '') || '/';
 
@@ -148,21 +166,8 @@ function SEO() {
       keywords: 'Alkebulan Global',
     };
 
+    // Page title
     document.title = currentSEO.title;
-
-    const updateMeta = (attribute, key, content) => {
-      let element = document.head.querySelector(
-        `meta[${attribute}="${key}"]`
-      );
-
-      if (!element) {
-        element = document.createElement('meta');
-        element.setAttribute(attribute, key);
-        document.head.appendChild(element);
-      }
-
-      element.setAttribute('content', content);
-    };
 
     // Standard SEO metadata
     updateMeta(
@@ -194,7 +199,7 @@ function SEO() {
         document.head.appendChild(canonical);
       }
 
-      canonical.href = `${SITE_URL}${pathname === '/' ? '/' : pathname}`;
+      canonical.href = `${SITE_URL}${pathname}`;
     } else if (canonical) {
       canonical.remove();
     }
@@ -213,7 +218,7 @@ function SEO() {
     updateMeta(
       'property',
       'og:url',
-      `${SITE_URL}${location.pathname}`
+      `${SITE_URL}${pathname}`
     );
 
     updateMeta(
@@ -293,50 +298,60 @@ export default function App() {
 
       <main id="main" tabIndex="-1">
         <Routes>
-          {/* Home */}
+          {/* DEFAULT HOMEPAGE */}
           <Route path="/" element={<Home />} />
 
-          {/* About */}
+          {/* ABOUT */}
           <Route path="/about" element={<About />} />
+
           <Route
             path="/about/company-snapshot"
             element={<About />}
           />
+
           <Route
             path="/about/who-we-are"
             element={<About />}
           />
+
           <Route
             path="/about/strategic-partners"
             element={<About />}
           />
+
           <Route
             path="/about/what-sets-us-apart"
             element={<About />}
           />
+
           <Route path="/about/:slug" element={<About />} />
 
-          {/* Services */}
+          {/* SERVICES */}
           <Route path="/services" element={<Services />} />
+
           <Route
             path="/services/sectors"
             element={<Services />}
           />
+
           <Route
             path="/services/core-services"
             element={<Services />}
           />
 
-          {/* Portfolio */}
-          <Route path="/portfolio" element={<Portfolio />} />
+          {/* PORTFOLIO */}
+          <Route
+            path="/portfolio"
+            element={<Portfolio />}
+          />
 
-          {/* Corporate Social Responsibility */}
+          {/* CORPORATE SOCIAL RESPONSIBILITY */}
           <Route path="/csr" element={<CSR />} />
 
-          {/* Contact */}
+          {/* CONTACT */}
           <Route path="/contact" element={<Contact />} />
 
-          {/* Unknown URLs */}
+          {/* UNKNOWN URLS */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
