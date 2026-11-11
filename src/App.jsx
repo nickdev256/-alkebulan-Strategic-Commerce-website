@@ -1,9 +1,11 @@
 
 import { useEffect } from 'react';
+
 import {
   Routes,
   Route,
   Link,
+  Navigate,
   useLocation,
 } from 'react-router-dom';
 
@@ -152,9 +154,11 @@ function SEO() {
   const location = useLocation();
 
   useEffect(() => {
-    // Normalize URLs and preserve the homepage as "/".
+    // Treat /index.html as the homepage for SEO.
+    const rawPath = location.pathname.replace(/\/+$/, '') || '/';
+
     const pathname =
-      location.pathname.replace(/\/+$/, '') || '/';
+      rawPath === '/index.html' ? '/' : rawPath;
 
     const pageSEO = seoConfig[pathname];
     const isKnownPage = Boolean(pageSEO);
@@ -301,6 +305,12 @@ export default function App() {
           {/* DEFAULT HOMEPAGE */}
           <Route path="/" element={<Home />} />
 
+          {/* REDIRECT OLD INDEX.HTML ADDRESS */}
+          <Route
+            path="/index.html"
+            element={<Navigate to="/" replace />}
+          />
+
           {/* ABOUT */}
           <Route path="/about" element={<About />} />
 
@@ -340,10 +350,7 @@ export default function App() {
           />
 
           {/* PORTFOLIO */}
-          <Route
-            path="/portfolio"
-            element={<Portfolio />}
-          />
+          <Route path="/portfolio" element={<Portfolio />} />
 
           {/* CORPORATE SOCIAL RESPONSIBILITY */}
           <Route path="/csr" element={<CSR />} />
