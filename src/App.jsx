@@ -18,7 +18,6 @@ import Portfolio from './pages/Portfolio.jsx';
 import CSR from './pages/CSR.jsx';
 import Contact from './pages/Contact.jsx';
 
-import './App.css';
 
 // ==========================================
 // ALKEBULAN GLOBAL WEBSITE SEO CONFIGURATION
