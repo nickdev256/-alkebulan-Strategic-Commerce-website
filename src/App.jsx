@@ -9,6 +9,7 @@ import {
 
 import Navbar from './components/Navbar.jsx';
 import Footer from './components/Footer.jsx';
+import ScrollToTop from './components/ScrollToTop.jsx';
 
 import Home from './pages/Home.jsx';
 import About from './pages/About.jsx';
@@ -29,11 +30,9 @@ const SITE_URL = 'https://alkebulan-global.com';
 const DEFAULT_DESCRIPTION =
   'Alkebulan Global is a New York-based international strategic advisory, market access and business development firm connecting Africa, the United States, the Caribbean and the global African Diaspora.';
 
-// SEO information for individual pages
 const seoConfig = {
   '/': {
-    title:
-      'Alkebulan Global LLC | Global Partners. Real Impact.',
+    title: 'Alkebulan Global LLC | Global Partners. Real Impact.',
     description:
       'Connecting Africa, the United States, the Caribbean and the global African Diaspora through strategic advisory, international trade, investment, partnerships and project development.',
     keywords:
@@ -41,8 +40,7 @@ const seoConfig = {
   },
 
   '/about': {
-    title:
-      'About Alkebulan Global | Our Vision, Mission & Leadership',
+    title: 'About Alkebulan Global | Our Vision, Mission & Leadership',
     description:
       'Discover Alkebulan Global LLC, a New York-based international strategic advisory and business development firm founded by Ambassador Dr. Karen L. Booker.',
     keywords:
@@ -50,8 +48,7 @@ const seoConfig = {
   },
 
   '/about/company-snapshot': {
-    title:
-      'Company Overview | Alkebulan Global LLC',
+    title: 'Company Overview | Alkebulan Global LLC',
     description:
       'Learn about Alkebulan Global LLC, our international business focus, strategic advisory services, global partnerships and commitment to Africa-centered development.',
     keywords:
@@ -59,8 +56,7 @@ const seoConfig = {
   },
 
   '/about/who-we-are': {
-    title:
-      'Who We Are | Alkebulan Global LLC',
+    title: 'Who We Are | Alkebulan Global LLC',
     description:
       'Meet Alkebulan Global, an international strategic connector and market access partner linking African opportunities with global business networks.',
     keywords:
@@ -68,8 +64,7 @@ const seoConfig = {
   },
 
   '/about/strategic-partners': {
-    title:
-      'Strategic Partners | Alkebulan Global',
+    title: 'Strategic Partners | Alkebulan Global',
     description:
       'Explore Alkebulan Global’s approach to connecting governments, corporations, investors, project developers and local partners.',
     keywords:
@@ -77,8 +72,7 @@ const seoConfig = {
   },
 
   '/about/what-sets-us-apart': {
-    title:
-      'What Sets Us Apart | Alkebulan Global',
+    title: 'What Sets Us Apart | Alkebulan Global',
     description:
       'Discover how Alkebulan Global combines international access, trusted local relationships, strategic intelligence and commercial networks to enable projects and partnerships.',
     keywords:
@@ -86,8 +80,7 @@ const seoConfig = {
   },
 
   '/services': {
-    title:
-      'Strategic Advisory & Business Development Services | Alkebulan Global',
+    title: 'Strategic Advisory & Business Development Services | Alkebulan Global',
     description:
       'Explore Alkebulan Global’s six strategic focus areas: Mines-to-Market, strategic partnerships, market access, project enablement, leadership and investment advisory.',
     keywords:
@@ -95,8 +88,7 @@ const seoConfig = {
   },
 
   '/services/sectors': {
-    title:
-      'Strategic Sectors | Mining, Energy, Infrastructure & More',
+    title: 'Strategic Sectors | Mining, Energy, Infrastructure & More',
     description:
       'Explore Alkebulan Global’s priority sectors, including critical minerals, mining, oil and gas, energy, infrastructure, manufacturing, agriculture, technology and logistics.',
     keywords:
@@ -104,8 +96,7 @@ const seoConfig = {
   },
 
   '/services/core-services': {
-    title:
-      'Core Services | Alkebulan Global LLC',
+    title: 'Core Services | Alkebulan Global LLC',
     description:
       'Discover Alkebulan Global’s core services in strategic partnerships, joint ventures, market access, project development and investment advisory.',
     keywords:
@@ -113,8 +104,7 @@ const seoConfig = {
   },
 
   '/portfolio': {
-    title:
-      'Projects & Portfolio | Alkebulan Global LLC',
+    title: 'Projects & Portfolio | Alkebulan Global LLC',
     description:
       'Explore Alkebulan Global’s project interests, development initiatives and strategic opportunities across African and international markets.',
     keywords:
@@ -122,8 +112,7 @@ const seoConfig = {
   },
 
   '/csr': {
-    title:
-      'Corporate Social Responsibility | Alkebulan Global',
+    title: 'Corporate Social Responsibility | Alkebulan Global',
     description:
       'Learn about Alkebulan Global’s commitment to responsible business, integrity, sustainable development and responsible international partnerships.',
     keywords:
@@ -131,19 +120,11 @@ const seoConfig = {
   },
 
   '/contact': {
-    title:
-      'Contact Alkebulan Global | Global Business Partnerships',
+    title: 'Contact Alkebulan Global | Global Business Partnerships',
     description:
       'Connect with Alkebulan Global LLC for strategic advisory, market access, international partnerships, trade, investment and project development enquiries.',
     keywords:
       'Contact Alkebulan Global, international business enquiries, African investment partnerships, strategic advisory contact',
-  },
-
-  '/404': {
-    title: 'Page Not Found | Alkebulan Global LLC',
-    description:
-      'The requested page could not be found on the Alkebulan Global website.',
-    keywords: 'Alkebulan Global',
   },
 };
 
@@ -158,19 +139,18 @@ function SEO() {
     const pathname =
       location.pathname.replace(/\/+$/, '') || '/';
 
-    const pageSEO =
-      seoConfig[pathname] || seoConfig['/404'];
+    const pageSEO = seoConfig[pathname];
+    const isKnownPage = Boolean(pageSEO);
 
-    const canonicalPath =
-      seoConfig[pathname] ? pathname : '/404';
+    const currentSEO = pageSEO || {
+      title: 'Page Not Found | Alkebulan Global LLC',
+      description:
+        'The requested page could not be found on the Alkebulan Global website.',
+      keywords: 'Alkebulan Global',
+    };
 
-    const canonicalURL =
-      `${SITE_URL}${canonicalPath === '/' ? '/' : canonicalPath}`;
+    document.title = currentSEO.title;
 
-    // Update browser title
-    document.title = pageSEO.title;
-
-    // Create or update meta tags
     const updateMeta = (attribute, key, content) => {
       let element = document.head.querySelector(
         `meta[${attribute}="${key}"]`
@@ -189,23 +169,18 @@ function SEO() {
     updateMeta(
       'name',
       'description',
-      pageSEO.description || DEFAULT_DESCRIPTION
+      currentSEO.description || DEFAULT_DESCRIPTION
     );
 
-    updateMeta(
-      'name',
-      'keywords',
-      pageSEO.keywords || ''
-    );
-
+    updateMeta('name', 'keywords', currentSEO.keywords || '');
     updateMeta('name', 'author', SITE_NAME);
 
     updateMeta(
       'name',
       'robots',
-      pathname === '/404'
-        ? 'noindex, follow'
-        : 'index, follow, max-image-preview:large'
+      isKnownPage
+        ? 'index, follow, max-image-preview:large'
+        : 'noindex, follow'
     );
 
     // Canonical URL
@@ -213,48 +188,51 @@ function SEO() {
       'link[rel="canonical"]'
     );
 
-    if (!canonical) {
-      canonical = document.createElement('link');
-      canonical.rel = 'canonical';
-      document.head.appendChild(canonical);
-    }
+    if (isKnownPage) {
+      if (!canonical) {
+        canonical = document.createElement('link');
+        canonical.rel = 'canonical';
+        document.head.appendChild(canonical);
+      }
 
-    canonical.href = canonicalURL;
+      canonical.href = `${SITE_URL}${pathname === '/' ? '/' : pathname}`;
+    } else if (canonical) {
+      canonical.remove();
+    }
 
     // Open Graph metadata
     updateMeta('property', 'og:type', 'website');
     updateMeta('property', 'og:site_name', SITE_NAME);
-    updateMeta('property', 'og:title', pageSEO.title);
+    updateMeta('property', 'og:title', currentSEO.title);
+
     updateMeta(
       'property',
       'og:description',
-      pageSEO.description || DEFAULT_DESCRIPTION
+      currentSEO.description || DEFAULT_DESCRIPTION
     );
-    updateMeta('property', 'og:url', canonicalURL);
+
+    updateMeta(
+      'property',
+      'og:url',
+      `${SITE_URL}${location.pathname}`
+    );
+
     updateMeta(
       'property',
       'og:image',
       `${SITE_URL}/og-image.jpg`
     );
+
     updateMeta('property', 'og:locale', 'en_US');
 
     // Twitter metadata
-    updateMeta(
-      'name',
-      'twitter:card',
-      'summary_large_image'
-    );
-
-    updateMeta(
-      'name',
-      'twitter:title',
-      pageSEO.title
-    );
+    updateMeta('name', 'twitter:card', 'summary_large_image');
+    updateMeta('name', 'twitter:title', currentSEO.title);
 
     updateMeta(
       'name',
       'twitter:description',
-      pageSEO.description || DEFAULT_DESCRIPTION
+      currentSEO.description || DEFAULT_DESCRIPTION
     );
 
     updateMeta(
@@ -262,7 +240,6 @@ function SEO() {
       'twitter:image',
       `${SITE_URL}/og-image.jpg`
     );
-
   }, [location.pathname]);
 
   return null;
@@ -274,14 +251,26 @@ function SEO() {
 
 function NotFound() {
   return (
-    <section className="not-found">
-      <p className="eyebrow">404 — PAGE NOT FOUND</p>
+    <section className="section">
+      <div className="container section-head section-head--center">
+        <p className="eyebrow">404 — Page not found</p>
 
-      <h1>This page could not be found.</h1>
+        <h1 className="not-found-title">
+          This page could not be found.
+        </h1>
 
-      <Link className="gold-button" to="/">
-        Return Home
-      </Link>
+        <p>
+          The page may have moved, or the address may be incorrect.
+        </p>
+
+        <Link
+          className="btn btn--dark"
+          to="/"
+          style={{ marginTop: 28 }}
+        >
+          Return Home
+        </Link>
+      </div>
     </section>
   );
 }
@@ -293,85 +282,67 @@ function NotFound() {
 export default function App() {
   return (
     <div className="app">
-
       <SEO />
+
+      <a className="skip-link" href="#main">
+        Skip to content
+      </a>
+
+      <ScrollToTop />
 
       <Navbar />
 
-      <main>
+      <main id="main" tabIndex="-1">
         <Routes>
-
           {/* Home */}
           <Route path="/" element={<Home />} />
 
           {/* About */}
           <Route path="/about" element={<About />} />
-
           <Route
             path="/about/company-snapshot"
             element={<About />}
           />
-
           <Route
             path="/about/who-we-are"
             element={<About />}
           />
-
           <Route
             path="/about/strategic-partners"
             element={<About />}
           />
-
           <Route
             path="/about/what-sets-us-apart"
             element={<About />}
           />
+          <Route path="/about/:slug" element={<About />} />
 
           {/* Services */}
-          <Route
-            path="/services"
-            element={<Services />}
-          />
-
+          <Route path="/services" element={<Services />} />
           <Route
             path="/services/sectors"
             element={<Services />}
           />
-
           <Route
             path="/services/core-services"
             element={<Services />}
           />
 
           {/* Portfolio */}
-          <Route
-            path="/portfolio"
-            element={<Portfolio />}
-          />
+          <Route path="/portfolio" element={<Portfolio />} />
 
           {/* Corporate Social Responsibility */}
-          <Route
-            path="/csr"
-            element={<CSR />}
-          />
+          <Route path="/csr" element={<CSR />} />
 
           {/* Contact */}
-          <Route
-            path="/contact"
-            element={<Contact />}
-          />
+          <Route path="/contact" element={<Contact />} />
 
           {/* Unknown URLs */}
-          <Route
-            path="*"
-            element={<NotFound />}
-          />
-
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
 
       <Footer />
-
     </div>
   );
 }
