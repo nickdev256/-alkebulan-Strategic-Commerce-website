@@ -1,6 +1,7 @@
 import { useLocation } from 'react-router-dom';
 import PageHero from '../components/PageHero.jsx';
 import CtaBand from '../components/CtaBand.jsx';
+import PhotoBreak from '../components/PhotoBreak.jsx';
 import Icon from '../components/Icon.jsx';
 import { subPages } from '../navigation.js';
 import { sectors, services } from '../content.js';
@@ -16,6 +17,9 @@ export default function Services() {
   return (
     <>
       <PageHero
+        image="/images/photos/boardroom.jpg"
+        imageAlt="Alkebulan Global boardroom with a world map display"
+        focus="center 40%"
         eyebrow="Our Expertise"
         title={title}
         intro="Strategic support for market access, cross-border commerce, supplier development, and international partnerships."
@@ -28,7 +32,7 @@ export default function Services() {
             <>
               <div className="section-head">
                 <p className="eyebrow">Where we focus</p>
-                <h2>Five sectors, one integrated approach</h2>
+                <h2>Six sectors, one integrated approach</h2>
               </div>
               <div className="grid grid--3">
                 {sectors.map((item) => (
@@ -68,6 +72,14 @@ export default function Services() {
           )}
         </div>
       </section>
+
+      <PhotoBreak
+        image="/images/photos/trade-briefing-wide.jpg"
+        alt="Alkebulan Global presenter leading a briefing on Africa–U.S. trade and investment opportunities"
+        focus="center 4%"
+        eyebrow="Africa–U.S. Trade & Investment"
+        title="Strategic access. Global partnerships. Transformative projects."
+      />
 
       <CtaBand
         title="Discuss Your Requirements"

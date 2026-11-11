@@ -2,9 +2,24 @@ import { NavLink } from 'react-router-dom';
 import './PageHero.css';
 
 // Banner at the top of every inner page. `tabs` adds sub-page links.
-export default function PageHero({ eyebrow, title, intro, tabs }) {
+// `image` fills the banner with a photo; `focus` sets which part of the
+// photo stays in view (CSS object-position, e.g. "70% 40%").
+export default function PageHero({ eyebrow, title, intro, tabs, image, imageAlt = '', focus = 'center' }) {
   return (
-    <section className="page-hero">
+    <section className={image ? 'page-hero page-hero--photo' : 'page-hero'}>
+      {image && (
+        <div className="page-hero-bg">
+          <img
+            src={image}
+            alt={imageAlt}
+            width="1100"
+            height="1560"
+            fetchPriority="high"
+            style={{ objectPosition: focus }}
+          />
+        </div>
+      )}
+
       <div className="container">
         <p className="eyebrow">{eyebrow}</p>
         <h1>{title}</h1>

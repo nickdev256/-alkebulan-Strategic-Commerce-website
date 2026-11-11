@@ -2,11 +2,13 @@ import { Link } from 'react-router-dom';
 import Hero from '../sections/Hero.jsx';
 import Icon from '../components/Icon.jsx';
 import CtaBand from '../components/CtaBand.jsx';
+import PhotoBreak from '../components/PhotoBreak.jsx';
 import { advantages, sectors, services } from '../content.js';
 import './Home.css';
 
 // The four pillars from the brand logo.
 const pillars = ['Access', 'Partnerships', 'Investment', 'Impact'];
+
 
 export default function Home() {
   return (
@@ -20,6 +22,49 @@ export default function Home() {
           ))}
         </div>
       </div>
+
+      {/* Who we are, with photos */}
+      <section className="section section--white">
+        <div className="container home-intro">
+          <div className="intro-photos">
+            <img
+              className="intro-photo-main"
+              src="/images/photos/executive-office.jpg"
+              alt="Alkebulan Global executive office with the company emblem"
+              width="1100"
+              height="1557"
+              loading="lazy"
+            />
+            <img
+              className="intro-photo-inset"
+              src="/images/photos/workspace.jpg"
+              alt="Open-plan Alkebulan Global office with city views"
+              width="1100"
+              height="1557"
+              loading="lazy"
+            />
+          </div>
+
+          <div className="intro-text">
+            <p className="eyebrow">Who We Are</p>
+            <h2>A trusted bridge between African capability and global opportunity</h2>
+            <p>
+              Alkebulan Global is a strategic business firm focused on global
+              sourcing, strategic thinking, leadership consulting, business
+              development, and organizational analysis.
+            </p>
+            <p>
+              Headquartered at One World Trade Center in New York, with
+              satellite offices in Uganda, Namibia, Mozambique, and Nigeria,
+              we connect African enterprises with international buyers,
+              partners, and investors.
+            </p>
+            <Link to="/about" className="btn btn--dark">
+              About Alkebulan Global
+            </Link>
+          </div>
+        </div>
+      </section>
 
       {/* Core Sectors */}
       <section className="section">
@@ -45,22 +90,24 @@ export default function Home() {
                 <p>{sector.text}</p>
               </article>
             ))}
-
-            <Link to="/contact" className="card sector-more">
-              <h3>Have a different sector in mind?</h3>
-              <p>Tell us about your project and we will explore the fit.</p>
-              <span className="text-link">Start a conversation</span>
-            </Link>
           </div>
         </div>
       </section>
 
-      {/* What Sets AG Apart */}
+      <PhotoBreak
+        image="/images/photos/reception-wide.jpg"
+        alt="Alkebulan Global reception with the company emblem above a marble desk"
+        focus="center 40%"
+        eyebrow="Alkebulan Global"
+        title="Connecting Opportunity. Building Legacy."
+      />
+
+      {/* What Sets Alkebulan Global Apart */}
       <section className="section section--dark">
         <div className="container">
           <div className="home-head">
             <div className="section-head">
-              <p className="eyebrow">What Sets AG Apart</p>
+              <p className="eyebrow">What Sets Alkebulan Global Apart</p>
               <h2>Built for complex, cross-border engagements</h2>
             </div>
             <Link to="/about/what-sets-us-apart" className="text-link text-link--light">

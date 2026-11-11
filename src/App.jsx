@@ -10,6 +10,7 @@ import Services from './pages/Services.jsx';
 import Portfolio from './pages/Portfolio.jsx';
 import CSR from './pages/CSR.jsx';
 import Contact from './pages/Contact.jsx';
+import Privacy from './pages/Privacy.jsx';
 
 function NotFound() {
   return (
@@ -49,6 +50,7 @@ export default function App() {
           <Route path="/portfolio" element={<Portfolio />} />
           <Route path="/csr" element={<CSR />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/privacy" element={<Privacy />} />
 
           <Route path="*" element={<NotFound />} />
         </Routes>

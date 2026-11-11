@@ -1,5 +1,6 @@
 import PageHero from '../components/PageHero.jsx';
 import CtaBand from '../components/CtaBand.jsx';
+import PhotoBreak from '../components/PhotoBreak.jsx';
 import Icon from '../components/Icon.jsx';
 import './CSR.css';
 
@@ -16,6 +17,9 @@ export default function CSR() {
   return (
     <>
       <PageHero
+        image="/images/photos/team-collaboration.jpg"
+        imageAlt="Alkebulan Global team members working together on a laptop"
+        focus="center 30%"
         eyebrow="Responsibility"
         title="Corporate Social Responsibility"
         intro="Encouraging responsible commerce, inclusive opportunity, and sustainable economic development."
@@ -48,6 +52,14 @@ export default function CSR() {
           </blockquote>
         </div>
       </section>
+
+      <PhotoBreak
+        image="/images/photos/lounge-view.jpg"
+        alt="Alkebulan Global client lounge overlooking the city"
+        focus="center 50%"
+        eyebrow="Access · Partnerships · Investment · Impact"
+        title="Commerce that builds stronger communities and lasting relationships."
+      />
 
       <section className="section">
         <div className="container">

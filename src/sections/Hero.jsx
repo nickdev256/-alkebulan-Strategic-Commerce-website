@@ -23,7 +23,7 @@ export default function Hero() {
 
           <div className="hero-actions">
             <Link to="/portfolio" className="btn btn--primary">
-              Explore Opportunities
+              Explore Projects
             </Link>
             <Link to="/contact" className="btn btn--ghost">
               Engage Alkebulan Global
@@ -49,7 +49,7 @@ export default function Hero() {
           />
 
           <div className="hero-badge hero-badge--top">
-            <strong>5</strong> Core sectors
+            <strong>6</strong> Core sectors
           </div>
           <div className="hero-badge hero-badge--bottom">
             <strong>4</strong> Regions connected

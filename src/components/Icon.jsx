@@ -1,5 +1,6 @@
 // Simple line icons used across the site. Usage: <Icon name="globe" />
 const paths = {
+  phone: <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2Z" />,
   bolt: <path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z" />,
   recycle: (
     <>
@@ -115,6 +116,14 @@ const paths = {
       <circle cx="12" cy="12" r="1" />
     </>
   ),
+  chat: <path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 21l2.1-5.5A8.4 8.4 0 1 1 21 11.5Z" />,
+  pin: (
+    <>
+      <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+      <circle cx="12" cy="10" r="3" />
+    </>
+  ),
+  check: <path d="m5 12 5 5L20 7" />,
 };
 
 export default function Icon({ name, size = 22 }) {

@@ -1,0 +1,70 @@
+.photo-break {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  min-height: clamp(320px, 52vh, 560px);
+  overflow: hidden;
+  background: var(--navy-950);
+}
+
+.photo-break img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1.04);
+  transition: transform 1.6s ease;
+}
+
+.photo-break:hover img {
+  transform: scale(1);
+}
+
+/* Dark fade at the bottom so the caption reads clearly */
+.photo-break::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(0deg, rgba(6, 15, 28, 0.88) 0%, rgba(6, 15, 28, 0.35) 45%, transparent 75%),
+    linear-gradient(90deg, rgba(6, 15, 28, 0.45) 0%, transparent 60%);
+}
+
+.photo-break-caption {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  padding-top: 48px;
+  padding-bottom: 56px;
+}
+
+.photo-break-caption .eyebrow {
+  color: var(--gold-light);
+}
+
+.photo-break-title {
+  max-width: 720px;
+  color: var(--white);
+  font-size: clamp(1.7rem, 3.6vw, 2.8rem);
+  font-weight: 700;
+  line-height: 1.2;
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.4);
+}
+
+@media (max-width: 600px) {
+  .photo-break {
+    min-height: 300px;
+  }
+
+  .photo-break-caption {
+    padding-bottom: 36px;
+  }
+}
+
+@media (hover: none), (prefers-reduced-motion: reduce) {
+  .photo-break img {
+    transform: none;
+    transition: none;
+  }
+}

@@ -1,11 +1,12 @@
 // Content shared by more than one page. Each item is written once here.
 
 export const sectors = [
-  { icon: 'bolt', title: 'Energy', text: 'Strategic energy infrastructure and project development connecting African resources to global demand.' },
-  { icon: 'recycle', title: 'Waste Management & Circular Economy', text: 'Innovative solutions transforming waste into resources and building sustainable circular systems.' },
-  { icon: 'mountain', title: 'Raw & Critical Minerals', text: 'Connecting African mineral assets to global supply chains with compliance and integrity.' },
-  { icon: 'gem', title: 'Precious Metals & Gemstones', text: 'High-value commodity expertise connecting producers to premium markets responsibly.' },
-  { icon: 'box', title: 'Global Product Sourcing', text: 'Comprehensive sourcing solutions leveraging African production capabilities for global buyers.' },
+  { icon: 'bolt', title: 'Energy & Power', text: 'Oil, gas, renewable energy, and power infrastructure positioning African assets for multinational investment and long-term offtake relationships.' },
+  { icon: 'mountain', title: 'Minerals & Mining', text: 'Critical minerals, rare earths, precious metals—connecting African geology to multinational manufacturing and institutional supply chain requirements.' },
+  { icon: 'factory', title: 'Manufacturing & Industrial', text: 'African manufacturing capabilities in textiles, consumer goods, and industrial products accessing multinational supply chains and procurement.' },
+  { icon: 'wheat', title: 'Agriculture & Food', text: 'Agricultural production and food processing connecting to multinational food manufacturers, retail partners, and institutional procurement.' },
+  { icon: 'recycle', title: 'Infrastructure & Development', text: 'Renewable energy infrastructure, transportation, logistics, and development projects attracting development finance and institutional investment.' },
+  { icon: 'target', title: 'Strategic Projects', text: 'Complex cross-sector projects requiring diplomatic navigation, institutional positioning, and multi-stakeholder coordination.' },
 ];
 
 // Home shows the first four; the About page shows all six.
@@ -29,4 +30,6 @@ export const services = [
   { icon: 'factory', title: 'Manufacturing & Vocational Training', text: 'Technical and vocational skills development aligned with manufacturing and industry requirements.' },
 ];
 
-export const contactEmail = 'info@alkebulanglobal.com';
+export const contactEmail = 'info@alkebulan-global.com';
+export const contactPhone = '+1 (212) 220-6778';
+export const contactWhatsApp = '+1 (347) 233-0483';

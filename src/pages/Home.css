@@ -49,19 +49,6 @@
 
 /* ---------- Sectors ---------- */
 
-.sector-more {
-  justify-content: center;
-  background: transparent;
-  border-style: dashed;
-  box-shadow: none;
-  text-decoration: none;
-}
-
-.sector-more .text-link {
-  margin-top: 16px;
-  align-self: flex-start;
-}
-
 /* ---------- Services ---------- */
 
 .services-intro {
@@ -130,5 +117,93 @@
 
   .service-steps li {
     padding-left: 48px;
+  }
+}
+
+/* ---------- Who we are (photo + text) ---------- */
+
+.home-intro {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 72px;
+}
+
+.intro-photos {
+  position: relative;
+  padding: 0 56px 56px 0;
+}
+
+.intro-photos img {
+  display: block;
+  height: auto;
+  object-fit: cover;
+}
+
+.intro-photo-main {
+  width: 100%;
+  aspect-ratio: 4 / 4.4;
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+}
+
+.intro-photo-inset {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 48%;
+  aspect-ratio: 1;
+  border: 6px solid var(--white);
+  border-radius: 18px;
+  object-position: center 30%;
+  box-shadow: 0 24px 48px -20px rgba(11, 26, 46, 0.45);
+}
+
+/* Gold accent behind the main photo */
+.intro-photos::before {
+  content: '';
+  position: absolute;
+  top: -18px;
+  left: -18px;
+  width: 40%;
+  height: 40%;
+  border-top: 3px solid var(--gold);
+  border-left: 3px solid var(--gold);
+  border-radius: 24px 0 0 0;
+}
+
+.intro-text h2 {
+  margin-bottom: 20px;
+  font-size: clamp(1.9rem, 3.4vw, 2.6rem);
+}
+
+.intro-text p:not(.eyebrow) {
+  margin-bottom: 16px;
+  color: var(--muted);
+}
+
+.intro-text .btn {
+  margin-top: 12px;
+}
+
+@media (max-width: 1000px) {
+  .home-intro {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 56px;
+  }
+
+  .intro-photos {
+    max-width: 560px;
+  }
+}
+
+@media (max-width: 560px) {
+  .intro-photos {
+    padding: 0 28px 28px 0;
+  }
+
+  .intro-photos::before {
+    top: -10px;
+    left: -10px;
   }
 }

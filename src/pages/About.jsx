@@ -1,6 +1,7 @@
 import { useParams } from 'react-router-dom';
 import PageHero from '../components/PageHero.jsx';
 import CtaBand from '../components/CtaBand.jsx';
+import PhotoBreak from '../components/PhotoBreak.jsx';
 import Icon from '../components/Icon.jsx';
 import { subPages } from '../navigation.js';
 import { advantages } from '../content.js';
@@ -20,7 +21,7 @@ const pages = {
     intro: 'Building partnerships between African enterprises and international markets.',
   },
   'what-sets-us-apart': {
-    title: 'What Sets AG Apart',
+    title: 'What Sets Alkebulan Global Apart',
     intro: 'A considered approach to market access, compliance, and cross-border execution.',
   },
 };
@@ -248,7 +249,7 @@ function StrategicPartners() {
         <div className="container split">
           <div className="prose">
             <p className="eyebrow">Partnership Benefits</p>
-            <h2>What partners gain from working with AG</h2>
+            <h2>What partners gain from working with Alkebulan Global</h2>
           </div>
           <ul className="checklist">
             <li>Explore new market and sourcing opportunities.</li>
@@ -305,6 +306,9 @@ export default function About() {
   return (
     <>
       <PageHero
+        image="/images/photos/reception.jpg"
+        imageAlt="Alkebulan Global reception desk with the company emblem"
+        focus="center 32%"
         eyebrow="About Alkebulan Global"
         title={page.title}
         intro={page.intro}
@@ -312,6 +316,14 @@ export default function About() {
       />
 
       <Content />
+
+      <PhotoBreak
+        image="/images/photos/library-wide.jpg"
+        alt="Alkebulan Global library with an armchair, city views and shelves beneath the company emblem"
+        focus="center 18%"
+        eyebrow="Our Purpose"
+        title="Bridging policy, commerce, and execution."
+      />
 
       <div className={['what-sets-us-apart', 'who-we-are'].includes(key) ? 'about-cta-dark' : ''}>
         <CtaBand

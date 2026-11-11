@@ -17,7 +17,13 @@ const REVEAL_TARGETS = [
   '.portfolio-note',
   '.contact-form',
   '.contact-aside',
+  '.channel-card',
+  '.hq-card',
+  '.office-card',
   '.pillars span',
+  '.intro-photos',
+  '.intro-text',
+  '.photo-break-caption',
 ].join(',');
 
 // Browser-tab title for each page.
@@ -27,13 +33,14 @@ const pageTitles = {
   '/about/company-snapshot': 'Company Snapshot',
   '/about/who-we-are': 'Who We Are',
   '/about/strategic-partners': 'Strategic Partners',
-  '/about/what-sets-us-apart': 'What Sets AG Apart',
+  '/about/what-sets-us-apart': 'What Sets Alkebulan Global Apart',
   '/services': 'Core Services',
   '/services/sectors': 'Core Sectors',
   '/services/core-services': 'Core Services',
-  '/portfolio': 'Opportunities & Engagements',
+  '/portfolio': 'Projects & Engagements',
   '/csr': 'Corporate Social Responsibility',
   '/contact': 'Contact Us',
+  '/privacy': 'Privacy Policy',
 };
 
 // On every page change: set the tab title, jump to the top,

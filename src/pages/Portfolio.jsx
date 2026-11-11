@@ -1,24 +1,24 @@
 import { Link } from 'react-router-dom';
 import PageHero from '../components/PageHero.jsx';
 import CtaBand from '../components/CtaBand.jsx';
+import PhotoBreak from '../components/PhotoBreak.jsx';
 import Icon from '../components/Icon.jsx';
+import { sectors } from '../content.js';
 import './Portfolio.css';
 
-const projects = [
-  { icon: 'bolt', category: 'Energy', title: 'Energy Infrastructure', text: 'Exploring connections between energy project developers, strategic partners, and potential international buyers.' },
-  { icon: 'mountain', category: 'Critical Minerals', title: 'Responsible Mineral Sourcing', text: 'Supporting responsible sourcing discussions, traceability considerations, and compliant supply-chain relationships.' },
-  { icon: 'factory', category: 'Manufacturing', title: 'African Manufacturing', text: 'Exploring pathways for African manufacturers to meet international buyer requirements and develop export opportunities.' },
-  { icon: 'wheat', category: 'Agriculture', title: 'Agricultural Export Development', text: 'Connecting agricultural producers with potential international buyers and relevant market-entry support.' },
-  { icon: 'gem', category: 'Precious Metals', title: 'Precious Metals Market Access', text: 'Exploring responsible market-access pathways that account for due diligence and supply-chain integrity.' },
-  { icon: 'coins', category: 'Trade Finance', title: 'Trade Finance Partnerships', text: 'Identifying potential finance and institutional relationships to support commercially viable trade opportunities.' },
-];
+// Same six sectors as the Core Sectors page, each with a short label.
+const labels = ['Energy', 'Minerals', 'Manufacturing', 'Agriculture', 'Infrastructure', 'Strategic Projects'];
+const projects = sectors.map((sector, i) => ({ ...sector, category: labels[i] }));
 
 export default function Portfolio() {
   return (
     <>
       <PageHero
+        image="/images/photos/strategy-table.jpg"
+        imageAlt="Africa map and an Alkebulan Global notebook on a meeting table"
+        focus="center 55%"
         eyebrow="Our Work"
-        title="Opportunities & Engagements"
+        title="Projects & Engagements"
         intro="Exploring strategic opportunities across sectors that connect African capabilities with global markets."
       />
 
@@ -56,8 +56,16 @@ export default function Portfolio() {
         </div>
       </section>
 
+      <PhotoBreak
+        image="/images/photos/boardroom.jpg"
+        alt="Alkebulan Global boardroom with a world map display"
+        focus="center 45%"
+        eyebrow="From Introduction to Execution"
+        title="Helping deals move from introductions to implementable transactions."
+      />
+
       <CtaBand
-        title="Have an Opportunity to Explore?"
+        title="Have a Project to Explore?"
         text="Contact us to discuss a project, sourcing requirement, or strategic partnership."
       />
     </>
