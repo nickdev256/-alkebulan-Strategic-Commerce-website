@@ -154,11 +154,9 @@ function SEO() {
   const location = useLocation();
 
   useEffect(() => {
-    // Treat /index.html as the homepage for SEO.
-    const rawPath = location.pathname.replace(/\/+$/, '') || '/';
-
+    // Remove trailing slashes from the current URL.
     const pathname =
-      rawPath === '/index.html' ? '/' : rawPath;
+      location.pathname.replace(/\/+$/, '') || '/';
 
     const pageSEO = seoConfig[pathname];
     const isKnownPage = Boolean(pageSEO);
@@ -228,7 +226,7 @@ function SEO() {
     updateMeta(
       'property',
       'og:image',
-      `${SITE_URL}/og-image.jpg`
+      `${SITE_URL}/images/alkebulan-global-logo.jpg`
     );
 
     updateMeta('property', 'og:locale', 'en_US');
@@ -246,7 +244,7 @@ function SEO() {
     updateMeta(
       'name',
       'twitter:image',
-      `${SITE_URL}/og-image.jpg`
+      `${SITE_URL}/images/alkebulan-global-logo.jpg`
     );
   }, [location.pathname]);
 
@@ -302,13 +300,43 @@ export default function App() {
 
       <main id="main" tabIndex="-1">
         <Routes>
-          {/* DEFAULT HOMEPAGE */}
+          {/* HOMEPAGE */}
           <Route path="/" element={<Home />} />
 
-          {/* REDIRECT OLD INDEX.HTML ADDRESS */}
+          {/* OLD HTML URL REDIRECTS */}
           <Route
             path="/index.html"
             element={<Navigate to="/" replace />}
+          />
+
+          <Route
+            path="/about.html"
+            element={<Navigate to="/about" replace />}
+          />
+
+          <Route
+            path="/contact.html"
+            element={<Navigate to="/contact" replace />}
+          />
+
+          <Route
+            path="/services.html"
+            element={<Navigate to="/services" replace />}
+          />
+
+          <Route
+            path="/service-detail.html"
+            element={<Navigate to="/services" replace />}
+          />
+
+          <Route
+            path="/portfolio.html"
+            element={<Navigate to="/portfolio" replace />}
+          />
+
+          <Route
+            path="/csr.html"
+            element={<Navigate to="/csr" replace />}
           />
 
           {/* ABOUT */}
