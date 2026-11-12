@@ -1,0 +1,10 @@
+
+RewriteEngine On
+
+# Redirect www to the preferred non-www domain
+RewriteCond %{HTTP_HOST} ^www\.alkebulan-global\.com$ [NC]
+RewriteRule ^(.*)$ https://alkebulan-global.com/$1 [R=301,L]
+
+# Redirect index.html to the homepage
+RewriteCond %{THE_REQUEST} \s/+index\.html[\s?] [NC]
+RewriteRule ^index\.html$ https://alkebulan-global.com/ [R=301,L]
