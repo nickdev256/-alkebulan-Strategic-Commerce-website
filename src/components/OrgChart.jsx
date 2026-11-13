@@ -70,7 +70,7 @@ const organizations = [
     ],
     roles: [
       'Technology Development & Digital Solutions',
-      'Marketing Advisory Services (Jackie Namusisi)',
+      'Marketing Advisory Services (Jackline Namusisi)',
       'Technology Coordination with Alkebulan Global',
       'Technology Coordination for Continental Founders',
       'Business Development & Client Engagement',

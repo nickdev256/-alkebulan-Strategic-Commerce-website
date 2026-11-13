@@ -26,10 +26,10 @@ export const advisors = [
     remit: ['International Strategy', 'Global Partnerships', 'Project Development', 'Advisory Coordination'],
   },
   {
-    name: 'Jackie Namusisi',
+    name: 'Jackline Namusisi',
     role: 'Global Executive Assistant & Diplomatic Procurement Advisor',
     org: 'Alkebulan Global LLC',
-    photo: '/images/team/jackie-namusisi.jpg',
+    photo: '/images/team/jackline-namusisi.jpg',
     remit: [
       'Executive Representation',
       'Documentation Support',
