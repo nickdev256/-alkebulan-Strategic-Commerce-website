@@ -1,16 +1,19 @@
+
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import PageHero from '../components/PageHero.jsx';
 import Icon from '../components/Icon.jsx';
-import PhotoBreak from '../components/PhotoBreak.jsx';
 import {
   contactEmail as email,
   contactPhone as phone,
   contactWhatsApp as whatsapp,
   sectors as coreSectors,
 } from '../content.js';
-import { isFormspreeReady, sendToFormspree } from '../lib/formspree.js';
 import './Contact.css';
+
+const API_BASE_URL = (
+  import.meta.env.VITE_API_URL || 'http://localhost:5000'
+).replace(/\/+$/, '');
 
 const interests = [
   'Global Sourcing',
@@ -22,8 +25,11 @@ const interests = [
   'Other',
 ];
 
-// The core sectors, plus a few extra options.
-const sectorOptions = [...coreSectors.map((sector) => sector.title), 'Trade Finance', 'Other'];
+const sectorOptions = [
+  ...coreSectors.map((sector) => sector.title),
+  'Trade Finance',
+  'Other',
+];
 
 const headquarters = {
   name: 'Alkebulan Global LLC',
@@ -32,7 +38,6 @@ const headquarters = {
   query: '1 World Trade Center, Suite 8500, New York, NY 10007',
 };
 
-// Offices with their two-letter flag codes.
 const offices = [
   { country: 'United States', code: 'us', role: 'Headquarters · New York' },
   { country: 'Uganda', code: 'ug', role: 'Satellite office' },
@@ -41,7 +46,6 @@ const offices = [
   { country: 'Nigeria', code: 'ng', role: 'Satellite office' },
 ];
 
-// The three ways to reach the team directly.
 const channels = [
   {
     icon: 'mail',
@@ -68,70 +72,96 @@ const channels = [
 ];
 
 const nextSteps = [
-  { title: 'We review your inquiry', text: 'Our team reads every message and looks at how your opportunity fits our sectors and network.' },
-  { title: 'We arrange a conversation', text: 'We reach out by email or phone to set up an introductory call.' },
-  { title: 'We map the path forward', text: 'Together we agree on partners, documentation, and practical next steps.' },
+  {
+    title: 'We review your inquiry',
+    text: 'Our team reads your message and considers how your opportunity aligns with our sectors, expertise and network.',
+  },
+  {
+    title: 'We arrange a conversation',
+    text: 'We contact you by email or phone to arrange an introductory discussion.',
+  },
+  {
+    title: 'We map the way forward',
+    text: 'Together, we explore potential partners, documentation and practical next steps.',
+  },
 ];
 
-const emptyForm = { name: '', email: '', phone: '', company: '', interest: '', sector: '', message: '' };
-
-// Opens the visitor's email app with the inquiry filled in (used when the
-// form service is not configured).
-function openEmailDraft(form) {
-  const subject = encodeURIComponent(`Website inquiry: ${form.interest}`);
-  const body = encodeURIComponent(
-    `Name: ${form.name}\n` +
-      `Email: ${form.email}\n` +
-      `Phone: ${form.phone}\n` +
-      `Company: ${form.company}\n` +
-      `Interest: ${form.interest}\n` +
-      `Sector: ${form.sector}\n\n` +
-      `Message:\n${form.message}`,
-  );
-  window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
-}
+const emptyForm = {
+  name: '',
+  email: '',
+  phone: '',
+  company: '',
+  interest: '',
+  sector: '',
+  message: '',
+  _gotcha: '',
+};
 
 export default function Contact() {
   const [form, setForm] = useState(emptyForm);
-  // idle | sending | sent | drafted | error
   const [status, setStatus] = useState('idle');
   const [error, setError] = useState('');
 
+  const sending = status === 'sending';
+
   function handleChange(event) {
-    setForm({ ...form, [event.target.name]: event.target.value });
+    const { name, value } = event.target;
+
+    setForm((previous) => ({
+      ...previous,
+      [name]: value,
+    }));
   }
 
   async function handleSubmit(event) {
     event.preventDefault();
 
-    if (!isFormspreeReady) {
-      openEmailDraft(form);
-      setStatus('drafted');
-      return;
-    }
+    if (sending) return;
 
-    // Bots fill the hidden field; people never see it.
-    const trap = new FormData(event.currentTarget).get('_gotcha');
+    // The hidden field helps identify automated submissions.
+    if (form._gotcha.trim()) return;
 
     setStatus('sending');
     setError('');
+
     try {
-      await sendToFormspree({
-        ...form,
-        _subject: `Website inquiry: ${form.interest} (${form.sector})`,
-        _replyto: form.email,
-        _gotcha: trap || '',
-        page: 'Contact',
+      const response = await fetch(`${API_BASE_URL}/api/contact`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: form.name.trim(),
+          email: form.email.trim(),
+          phone: form.phone.trim(),
+          company: form.company.trim(),
+          interest: form.interest,
+          sector: form.sector,
+          message: form.message.trim(),
+          _gotcha: form._gotcha,
+        }),
       });
-      setForm(emptyForm);
+
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(
+          result.message ||
+          result.error ||
+          'We could not submit your inquiry. Please try again.'
+        );
+      }
+
+      setForm({ ...emptyForm });
       setStatus('sent');
     } catch (err) {
-      setError(err.message);
+      setError(
+        err.message ||
+        'Unable to connect to our server. Please try again later.'
+      );
       setStatus('error');
     }
   }
-
-  const sending = status === 'sending';
 
   const mapQuery = encodeURIComponent(headquarters.query);
 
@@ -143,10 +173,10 @@ export default function Contact() {
         focus="center 24%"
         eyebrow="Engage Alkebulan Global"
         title="Let's Start a Conversation"
-        intro="Tell us about your business, sourcing needs, project, or potential strategic partnership."
+        intro="Tell us about your business, sourcing needs, project or potential strategic partnership. We welcome conversations that create meaningful opportunities across markets."
       />
 
-      {/* Direct contact options */}
+      {/* Direct contact channels */}
       <section className="contact-channels">
         <div className="container">
           <div className="channel-grid">
@@ -155,7 +185,11 @@ export default function Contact() {
                 key={channel.label}
                 className="channel-card"
                 href={channel.href}
-                {...(channel.external && { target: '_blank', rel: 'noopener noreferrer' })}
+                {...(
+                  channel.external
+                    ? { target: '_blank', rel: 'noopener noreferrer' }
+                    : {}
+                )}
               >
                 <span className="channel-icon">
                   <Icon name={channel.icon} size={24} />
@@ -169,21 +203,33 @@ export default function Contact() {
         </div>
       </section>
 
-      {/* Inquiry form and what to expect */}
+      {/* Contact form and next steps */}
       <section className="section contact-main">
         <div className="container contact-layout">
-          <form className="contact-form" onSubmit={handleSubmit} aria-busy={sending}>
-            {/* Spam trap: hidden from people, filled in by bots */}
+          <form
+            className="contact-form"
+            onSubmit={handleSubmit}
+            aria-busy={sending}
+          >
+            {/* Hidden spam-trap field */}
             <div className="form-trap" aria-hidden="true">
               <label htmlFor="_gotcha">Leave this field empty</label>
-              <input id="_gotcha" name="_gotcha" type="text" tabIndex={-1} autoComplete="off" />
+              <input
+                id="_gotcha"
+                name="_gotcha"
+                type="text"
+                tabIndex={-1}
+                autoComplete="off"
+                value={form._gotcha}
+                onChange={handleChange}
+              />
             </div>
 
             <div className="contact-form-head">
               <p className="eyebrow">Business Inquiries</p>
               <h2>Tell us about your opportunity</h2>
               <p>
-                Share some information about your organization and what you
+                Share some information about your organisation and what you
                 would like to explore. Fields marked optional can be left blank.
               </p>
             </div>
@@ -191,11 +237,31 @@ export default function Contact() {
             <div className="field-row">
               <div className="field">
                 <label htmlFor="name">Full name</label>
-                <input id="name" name="name" autoComplete="name" placeholder="Jane Doe" value={form.name} onChange={handleChange} required />
+                <input
+                  id="name"
+                  name="name"
+                  autoComplete="name"
+                  placeholder="Jane Doe"
+                  value={form.name}
+                  onChange={handleChange}
+                  maxLength={120}
+                  required
+                />
               </div>
+
               <div className="field">
                 <label htmlFor="email">Work email</label>
-                <input id="email" name="email" type="email" autoComplete="email" placeholder="jane@company.com" value={form.email} onChange={handleChange} required />
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="jane@company.com"
+                  value={form.email}
+                  onChange={handleChange}
+                  maxLength={254}
+                  required
+                />
               </div>
             </div>
 
@@ -204,32 +270,67 @@ export default function Contact() {
                 <label htmlFor="phone">
                   Phone <span className="optional">Optional</span>
                 </label>
-                <input id="phone" name="phone" type="tel" autoComplete="tel" placeholder="+1 (555) 000-0000" value={form.phone} onChange={handleChange} />
+                <input
+                  id="phone"
+                  name="phone"
+                  type="tel"
+                  autoComplete="tel"
+                  placeholder="+1 (555) 000-0000"
+                  value={form.phone}
+                  onChange={handleChange}
+                  maxLength={50}
+                />
               </div>
+
               <div className="field">
                 <label htmlFor="company">
                   Company <span className="optional">Optional</span>
                 </label>
-                <input id="company" name="company" autoComplete="organization" placeholder="Organization name" value={form.company} onChange={handleChange} />
+                <input
+                  id="company"
+                  name="company"
+                  autoComplete="organization"
+                  placeholder="Organisation name"
+                  value={form.company}
+                  onChange={handleChange}
+                  maxLength={200}
+                />
               </div>
             </div>
 
             <div className="field-row">
               <div className="field">
                 <label htmlFor="interest">Area of interest</label>
-                <select id="interest" name="interest" value={form.interest} onChange={handleChange} required>
+                <select
+                  id="interest"
+                  name="interest"
+                  value={form.interest}
+                  onChange={handleChange}
+                  required
+                >
                   <option value="">Select an option</option>
                   {interests.map((item) => (
-                    <option key={item}>{item}</option>
+                    <option key={item} value={item}>
+                      {item}
+                    </option>
                   ))}
                 </select>
               </div>
+
               <div className="field">
                 <label htmlFor="sector">Sector</label>
-                <select id="sector" name="sector" value={form.sector} onChange={handleChange} required>
+                <select
+                  id="sector"
+                  name="sector"
+                  value={form.sector}
+                  onChange={handleChange}
+                  required
+                >
                   <option value="">Select a sector</option>
                   {sectorOptions.map((item) => (
-                    <option key={item}>{item}</option>
+                    <option key={item} value={item}>
+                      {item}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -240,24 +341,31 @@ export default function Contact() {
               <textarea
                 id="message"
                 name="message"
-                rows="6"
-                placeholder="Briefly describe your project, product, or partnership goals."
+                rows={6}
+                placeholder="Briefly describe your project, product, business needs or partnership goals."
                 value={form.message}
                 onChange={handleChange}
+                maxLength={5000}
                 required
               />
             </div>
 
             <div className="form-footer">
-              <button className="btn btn--dark" type="submit" disabled={sending}>
-                {sending && <span className="btn-spinner" aria-hidden="true" />}
-                {sending ? 'Sending…' : 'Send Inquiry'}
+              <button
+                className="btn btn--dark"
+                type="submit"
+                disabled={sending}
+              >
+                {sending && (
+                  <span className="btn-spinner" aria-hidden="true" />
+                )}
+                {sending ? 'Submitting...' : 'Submit Inquiry'}
               </button>
+
               <p className="form-note">
-                {isFormspreeReady
-                  ? 'We usually reply within two business days. '
-                  : 'Your email app will open with your inquiry ready to send. '}
-                See our <Link to="/privacy">Privacy Policy</Link>.
+                Your information will be handled securely and used to respond
+                to your inquiry. See our{' '}
+                <Link to="/privacy">Privacy Policy</Link>.
               </p>
             </div>
 
@@ -265,16 +373,10 @@ export default function Contact() {
               {status === 'sent' && (
                 <p className="form-status" role="status">
                   <Icon name="check" size={18} />
-                  Thank you. Your inquiry has been sent and our team will be in
-                  touch soon.
-                </p>
-              )}
-
-              {status === 'drafted' && (
-                <p className="form-status" role="status">
-                  <Icon name="check" size={18} />
-                  Your email app should now be open. Press send there to
-                  complete your inquiry.
+                  <span>
+                    Thank you for contacting Alkebulan Global. Your inquiry
+                    has been submitted successfully. Our team will be in touch.
+                  </span>
                 </p>
               )}
 
@@ -282,7 +384,8 @@ export default function Contact() {
                 <p className="form-status form-status--error" role="alert">
                   <Icon name="mail" size={18} />
                   <span>
-                    {error} You can also email us directly at{' '}
+                    {error}{' '}
+                    You can also contact us directly at{' '}
                     <a href={`mailto:${email}`}>{email}</a>.
                   </span>
                 </p>
@@ -317,16 +420,23 @@ export default function Contact() {
         </div>
       </section>
 
-      <PhotoBreak
-        image="/images/photos/reception.jpg"
-        alt="Alkebulan Global reception desk with the company emblem"
-        focus="center 35%"
-        eyebrow="Africa · United States · Global Markets"
-        title="Connecting Africa, the United States, the Caribbean and global markets."
-      />
+      {/* Global presence */}
+      <section className="section section--sand">
+        <div className="container">
+          <div className="section-head section-head--center">
+            <p className="eyebrow">Africa · United States · Global Markets</p>
+            <h2>Connecting markets. Creating opportunities.</h2>
+            <p>
+              Alkebulan Global connects Africa, the United States, the
+              Caribbean and the wider global marketplace through strategic
+              relationships and business opportunities.
+            </p>
+          </div>
+        </div>
+      </section>
 
       {/* Offices */}
-      <section className="section section--sand contact-offices">
+      <section className="section contact-offices">
         <div className="container">
           <div className="section-head section-head--center">
             <p className="eyebrow">Our Offices</p>
@@ -338,8 +448,10 @@ export default function Contact() {
               <span className="channel-icon">
                 <Icon name="pin" size={24} />
               </span>
+
               <p className="eyebrow">Global Headquarters</p>
               <h3>{headquarters.name}</h3>
+
               <address>
                 {headquarters.street}
                 <br />
@@ -347,6 +459,7 @@ export default function Contact() {
                 <br />
                 United States
               </address>
+
               <a
                 className="btn btn--dark"
                 href={`https://www.google.com/maps/search/?api=1&query=${mapQuery}`}
@@ -369,7 +482,13 @@ export default function Contact() {
           <ul className="office-grid">
             {offices.map((office) => (
               <li key={office.country} className="office-card">
-                <img src={`https://flagcdn.com/${office.code}.svg`} alt="" width="48" height="32" loading="lazy" />
+                <img
+                  src={`https://flagcdn.com/${office.code}.svg`}
+                  alt={`${office.country} flag`}
+                  width="48"
+                  height="32"
+                  loading="lazy"
+                />
                 <div>
                   <h3>{office.country}</h3>
                   <p>{office.role}</p>
