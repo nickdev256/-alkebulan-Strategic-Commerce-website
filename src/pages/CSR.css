@@ -41,3 +41,27 @@
     padding: 40px 26px;
   }
 }
+
+/* ---------- Governance (dark section) ---------- */
+
+.governance-intro {
+  margin-bottom: 12px;
+  color: var(--gold-light);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+}
+
+.checklist--light li {
+  border-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* Twelve policies: two columns where there is room */
+@media (min-width: 640px) {
+  .checklist--light {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 28px;
+  }
+}

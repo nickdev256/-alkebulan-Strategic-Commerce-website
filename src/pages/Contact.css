@@ -443,3 +443,47 @@
 .form-note a:hover {
   color: var(--gold-hover);
 }
+
+/* ---------- Sending states ---------- */
+
+.form-trap {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.contact-form {
+  position: relative;
+}
+
+.contact-form .btn:disabled {
+  cursor: progress;
+  opacity: 0.85;
+}
+
+.btn-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: var(--white);
+  border-radius: 50%;
+  animation: btn-spin 0.8s linear infinite;
+}
+
+@keyframes btn-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.form-status--error {
+  background: #fbecec;
+  color: #8a2525;
+}
+
+.form-status--error a {
+  color: inherit;
+  font-weight: 700;
+}

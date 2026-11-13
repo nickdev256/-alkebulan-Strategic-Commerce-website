@@ -64,7 +64,9 @@
 
 .page-hero-bg {
   position: absolute;
-  inset: 0 0 0 36%;
+  /* Photo covers the right 80% of the banner */
+  inset: 0 0 0 20%;
+  z-index: 0;
   overflow: hidden;
 }
 
@@ -72,6 +74,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  /* Zooms out once when the page opens, then stays on the full view */
   animation: hero-zoom 14s ease-out both;
 }
 
@@ -79,8 +82,9 @@
   content: '';
   position: absolute;
   inset: 0;
+  z-index: 1;
   background:
-    linear-gradient(90deg, var(--navy-950) 0%, rgba(6, 15, 28, 0.55) 22%, rgba(6, 15, 28, 0.1) 50%, transparent 100%),
+    linear-gradient(90deg, var(--navy-950) 0%, rgba(6, 15, 28, 0.82) 16%, rgba(6, 15, 28, 0.5) 36%, rgba(6, 15, 28, 0.12) 62%, transparent 100%),
     linear-gradient(0deg, rgba(6, 15, 28, 0.35) 0%, transparent 30%);
 }
 
@@ -103,7 +107,7 @@
 /* Slow zoom so the banner feels alive */
 @keyframes hero-zoom {
   from {
-    transform: scale(1.12);
+    transform: scale(1.5);
   }
   to {
     transform: scale(1);
@@ -116,11 +120,6 @@
   }
 }
 
-@media (min-width: 1600px) {
-  .page-hero-bg {
-    left: 48%;
-  }
-}
 
 @media (max-width: 700px) {
   .page-hero--photo {
@@ -152,11 +151,41 @@
 
 .page-tabs nav {
   display: flex;
-  justify-content: center;
+  flex-wrap: nowrap;
   gap: 6px;
   padding: 10px 0;
   overflow-x: auto;
+  scroll-behavior: smooth;
   scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.page-tabs nav::-webkit-scrollbar {
+  display: none;
+}
+
+/* Centered when everything fits; starts at the left edge when it scrolls */
+.page-tabs a:first-child {
+  margin-left: auto;
+}
+
+.page-tabs a:last-child {
+  margin-right: auto;
+}
+
+.tab-short {
+  display: none;
+}
+
+/* Tablets and phones: shorter labels so the row fits */
+@media (max-width: 900px) {
+  .tab-full {
+    display: none;
+  }
+
+  .tab-short {
+    display: inline;
+  }
 }
 
 .page-tabs a {
@@ -191,12 +220,25 @@
   }
 
   .page-tabs nav {
-    flex-wrap: wrap;
-    gap: 6px 4px;
+    gap: 0;
+    margin: 0 -12px;
+    padding: 8px 4px;
+    /* Soft fade at the edges hints that the row scrolls */
+    mask-image: linear-gradient(90deg, transparent, #000 14px, #000 calc(100% - 14px), transparent);
   }
 
   .page-tabs a {
-    padding: 8px 14px;
-    font-size: 0.9rem;
+    padding: 8px 11px;
+    font-size: 0.84rem;
+  }
+
+}
+
+/* Small phones: tighter tabs so five fit on one row */
+@media (max-width: 420px) {
+  .page-tabs a {
+    padding: 7px 7px;
+    font-size: 0.8rem;
+    letter-spacing: 0;
   }
 }

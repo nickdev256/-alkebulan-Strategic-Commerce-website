@@ -9,6 +9,7 @@ import {
   contactWhatsApp as whatsapp,
   sectors as coreSectors,
 } from '../content.js';
+import { isFormspreeReady, sendToFormspree } from '../lib/formspree.js';
 import './Contact.css';
 
 const interests = [
@@ -21,7 +22,7 @@ const interests = [
   'Other',
 ];
 
-// The six core sectors, plus a few extra options.
+// The core sectors, plus a few extra options.
 const sectorOptions = [...coreSectors.map((sector) => sector.title), 'Trade Finance', 'Other'];
 
 const headquarters = {
@@ -74,32 +75,63 @@ const nextSteps = [
 
 const emptyForm = { name: '', email: '', phone: '', company: '', interest: '', sector: '', message: '' };
 
+// Opens the visitor's email app with the inquiry filled in (used when the
+// form service is not configured).
+function openEmailDraft(form) {
+  const subject = encodeURIComponent(`Website inquiry: ${form.interest}`);
+  const body = encodeURIComponent(
+    `Name: ${form.name}\n` +
+      `Email: ${form.email}\n` +
+      `Phone: ${form.phone}\n` +
+      `Company: ${form.company}\n` +
+      `Interest: ${form.interest}\n` +
+      `Sector: ${form.sector}\n\n` +
+      `Message:\n${form.message}`,
+  );
+  window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
+}
+
 export default function Contact() {
   const [form, setForm] = useState(emptyForm);
-  const [sent, setSent] = useState(false);
+  // idle | sending | sent | drafted | error
+  const [status, setStatus] = useState('idle');
+  const [error, setError] = useState('');
 
   function handleChange(event) {
     setForm({ ...form, [event.target.name]: event.target.value });
   }
 
-  // No backend yet: open the visitor's email app with the inquiry filled in.
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
 
-    const subject = encodeURIComponent(`Website inquiry: ${form.interest}`);
-    const body = encodeURIComponent(
-      `Name: ${form.name}\n` +
-        `Email: ${form.email}\n` +
-        `Phone: ${form.phone}\n` +
-        `Company: ${form.company}\n` +
-        `Interest: ${form.interest}\n` +
-        `Sector: ${form.sector}\n\n` +
-        `Message:\n${form.message}`,
-    );
+    if (!isFormspreeReady) {
+      openEmailDraft(form);
+      setStatus('drafted');
+      return;
+    }
 
-    window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
-    setSent(true);
+    // Bots fill the hidden field; people never see it.
+    const trap = new FormData(event.currentTarget).get('_gotcha');
+
+    setStatus('sending');
+    setError('');
+    try {
+      await sendToFormspree({
+        ...form,
+        _subject: `Website inquiry: ${form.interest} (${form.sector})`,
+        _replyto: form.email,
+        _gotcha: trap || '',
+        page: 'Contact',
+      });
+      setForm(emptyForm);
+      setStatus('sent');
+    } catch (err) {
+      setError(err.message);
+      setStatus('error');
+    }
   }
+
+  const sending = status === 'sending';
 
   const mapQuery = encodeURIComponent(headquarters.query);
 
@@ -140,7 +172,13 @@ export default function Contact() {
       {/* Inquiry form and what to expect */}
       <section className="section contact-main">
         <div className="container contact-layout">
-          <form className="contact-form" onSubmit={handleSubmit}>
+          <form className="contact-form" onSubmit={handleSubmit} aria-busy={sending}>
+            {/* Spam trap: hidden from people, filled in by bots */}
+            <div className="form-trap" aria-hidden="true">
+              <label htmlFor="_gotcha">Leave this field empty</label>
+              <input id="_gotcha" name="_gotcha" type="text" tabIndex={-1} autoComplete="off" />
+            </div>
+
             <div className="contact-form-head">
               <p className="eyebrow">Business Inquiries</p>
               <h2>Tell us about your opportunity</h2>
@@ -211,22 +249,45 @@ export default function Contact() {
             </div>
 
             <div className="form-footer">
-              <button className="btn btn--dark" type="submit">
-                Send Inquiry
+              <button className="btn btn--dark" type="submit" disabled={sending}>
+                {sending && <span className="btn-spinner" aria-hidden="true" />}
+                {sending ? 'Sending…' : 'Send Inquiry'}
               </button>
               <p className="form-note">
-                Your email app will open with your inquiry ready to send. See
-                our <Link to="/privacy">Privacy Policy</Link>.
+                {isFormspreeReady
+                  ? 'We usually reply within two business days. '
+                  : 'Your email app will open with your inquiry ready to send. '}
+                See our <Link to="/privacy">Privacy Policy</Link>.
               </p>
             </div>
 
-            {sent && (
-              <p className="form-status" role="status">
-                <Icon name="check" size={18} />
-                Your email app should now be open. Press send there to
-                complete your inquiry.
-              </p>
-            )}
+            <div aria-live="polite">
+              {status === 'sent' && (
+                <p className="form-status" role="status">
+                  <Icon name="check" size={18} />
+                  Thank you. Your inquiry has been sent and our team will be in
+                  touch soon.
+                </p>
+              )}
+
+              {status === 'drafted' && (
+                <p className="form-status" role="status">
+                  <Icon name="check" size={18} />
+                  Your email app should now be open. Press send there to
+                  complete your inquiry.
+                </p>
+              )}
+
+              {status === 'error' && (
+                <p className="form-status form-status--error" role="alert">
+                  <Icon name="mail" size={18} />
+                  <span>
+                    {error} You can also email us directly at{' '}
+                    <a href={`mailto:${email}`}>{email}</a>.
+                  </span>
+                </p>
+              )}
+            </div>
           </form>
 
           <aside className="contact-aside">

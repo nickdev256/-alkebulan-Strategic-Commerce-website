@@ -103,6 +103,7 @@
 }
 
 .logo-text {
+  font-family: var(--font-serif);
   display: flex;
   flex-direction: column;
   line-height: 1;

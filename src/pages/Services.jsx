@@ -1,4 +1,5 @@
-import { useLocation } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import PageHero from '../components/PageHero.jsx';
 import CtaBand from '../components/CtaBand.jsx';
 import PhotoBreak from '../components/PhotoBreak.jsx';
@@ -9,7 +10,43 @@ import './Services.css';
 
 const tabs = subPages('Expertise');
 
+// One service pillar: the summary is always visible, the detail opens on click.
+function ServiceRow({ item, index, open, onToggle }) {
+  const id = `service-detail-${index}`;
+  return (
+    <article className={`service-row${open ? ' is-open' : ''}`}>
+      <span className="service-row-num">{String(index + 1).padStart(2, '0')}</span>
+      <div className="icon-badge">
+        <Icon name={item.icon} />
+      </div>
+      <div>
+        <h3>
+          <button type="button" className="service-toggle" aria-expanded={open} aria-controls={id} onClick={onToggle}>
+            <span>{item.title}</span>
+            <span className="service-plus" aria-hidden="true" />
+          </button>
+        </h3>
+        <p>{item.text}</p>
+        <div className="service-row-more" id={id}>
+          <div>
+            <p className="service-row-detail">{item.detail}</p>
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+}
+
 export default function Services() {
+  const [openRows, setOpenRows] = useState(() => new Set([0]));
+  const toggle = (index) =>
+    setOpenRows((current) => {
+      const next = new Set(current);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
+      return next;
+    });
+
   const { pathname } = useLocation();
   const isSectors = pathname.endsWith('/sectors');
   const title = isSectors ? 'Core Sectors' : 'Core Services';
@@ -22,7 +59,7 @@ export default function Services() {
         focus="center 40%"
         eyebrow="Our Expertise"
         title={title}
-        intro="Strategic support for market access, cross-border commerce, supplier development, and international partnerships."
+        intro="Strategic advisory, diplomatic procurement, and global market access across Africa and international markets."
         tabs={tabs}
       />
 
@@ -31,10 +68,15 @@ export default function Services() {
           {isSectors ? (
             <>
               <div className="section-head">
-                <p className="eyebrow">Where we focus</p>
-                <h2>Six sectors, one integrated approach</h2>
+                <p className="eyebrow">Strategic Industry Sectors</p>
+                <h2>Eight sectors at the heart of growth and trade</h2>
+                <p>
+                  Alkebulan Global focuses on sectors central to economic
+                  diversification, industrial development, and international
+                  trade.
+                </p>
               </div>
-              <div className="grid grid--3">
+              <div className="sector-cards">
                 {sectors.map((item) => (
                   <article className="card" key={item.title}>
                     <div className="icon-badge">
@@ -44,28 +86,28 @@ export default function Services() {
                     <p>{item.text}</p>
                   </article>
                 ))}
+                <Link to="/contact" className="sector-cards-cta">
+                  <h3>Have a project in one of these sectors?</h3>
+                  <span>Discuss your requirements</span>
+                </Link>
               </div>
             </>
           ) : (
             <>
               <div className="section-head">
                 <p className="eyebrow">What we do</p>
-                <h2>Support at every stage of the engagement</h2>
+                <h2>Our six strategic service pillars</h2>
+                <p>Select a pillar to see how it works in practice.</p>
               </div>
               <div className="service-rows">
                 {services.map((item, index) => (
-                  <article className="service-row" key={item.title}>
-                    <span className="service-row-num">
-                      {String(index + 1).padStart(2, '0')}
-                    </span>
-                    <div className="icon-badge">
-                      <Icon name={item.icon} />
-                    </div>
-                    <div>
-                      <h3>{item.title}</h3>
-                      <p>{item.text}</p>
-                    </div>
-                  </article>
+                  <ServiceRow
+                    key={item.title}
+                    item={item}
+                    index={index}
+                    open={openRows.has(index)}
+                    onToggle={() => toggle(index)}
+                  />
                 ))}
               </div>
             </>
@@ -78,7 +120,7 @@ export default function Services() {
         alt="Alkebulan Global presenter leading a briefing on Africa–U.S. trade and investment opportunities"
         focus="center 4%"
         eyebrow="Africa–U.S. Trade & Investment"
-        title="Strategic access. Global partnerships. Transformative projects."
+        title="From responsible sourcing to project enablement and investor readiness."
       />
 
       <CtaBand

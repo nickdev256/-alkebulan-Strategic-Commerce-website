@@ -4,6 +4,22 @@ import PhotoBreak from '../components/PhotoBreak.jsx';
 import Icon from '../components/Icon.jsx';
 import './CSR.css';
 
+// Policies and practices from the 2027 Corporate Profile and the About Us text.
+const governance = [
+  'Anti-bribery and anti-corruption',
+  'Due diligence and counterparty verification',
+  'Sanctions compliance and screening',
+  'Conflict-of-interest management',
+  'Human rights',
+  'Anti-slavery',
+  'Whistleblower protection',
+  'Diversity and inclusion',
+  'Responsible sourcing',
+  'Responsible partner engagement',
+  'Confidentiality',
+  'Applicable international trade requirements',
+];
+
 const initiatives = [
   { icon: 'graduation', title: 'Vocational Training & Skills Development', text: 'Support skills development aligned with employment, entrepreneurship, and relevant industry requirements.' },
   { icon: 'users', title: 'Women in Enterprise', text: 'Encourage opportunities for women-owned enterprises through business development, training, and access to commercial networks.' },
@@ -17,9 +33,9 @@ export default function CSR() {
   return (
     <>
       <PageHero
-        image="/images/photos/team-collaboration.jpg"
-        imageAlt="Alkebulan Global team members working together on a laptop"
-        focus="center 30%"
+        image="/images/photos/csr-hero.jpg"
+        imageAlt="Alkebulan Global presenter leading a briefing on Africa–U.S. trade and investment opportunities"
+        focus="center 40%"
         eyebrow="Responsibility"
         title="Corporate Social Responsibility"
         intro="Encouraging responsible commerce, inclusive opportunity, and sustainable economic development."
@@ -50,6 +66,33 @@ export default function CSR() {
             </p>
             <footer>Alkebulan Global</footer>
           </blockquote>
+        </div>
+      </section>
+
+      <section className="section section--dark">
+        <div className="container split split--top">
+          <div className="prose">
+            <p className="eyebrow">Governance, Ethics &amp; Responsible Commerce</p>
+            <h2>Trust, accountability, and compliance</h2>
+            <p>
+              Alkebulan Global is committed to ethical business conduct,
+              responsible procurement, transparent commercial practices, and
+              appropriate due diligence.
+            </p>
+            <p>
+              We recognize that sustainable partnerships depend upon trust,
+              accountability, compliance, and the responsible management of
+              commercial and institutional relationships.
+            </p>
+          </div>
+          <div>
+            <p className="governance-intro">Our policies and practices address:</p>
+            <ul className="checklist checklist--light">
+              {governance.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </div>
         </div>
       </section>
 

@@ -3,6 +3,7 @@ import { Routes, Route, Link } from 'react-router-dom';
 import Navbar from './components/Navbar.jsx';
 import Footer from './components/Footer.jsx';
 import ScrollToTop from './components/ScrollToTop.jsx';
+import Interactions from './components/Interactions.jsx';
 
 import Home from './pages/Home.jsx';
 import About from './pages/About.jsx';
@@ -34,6 +35,7 @@ export default function App() {
         Skip to content
       </a>
       <ScrollToTop />
+      <Interactions />
       <Navbar />
 
       <main id="main" tabIndex="-1">
