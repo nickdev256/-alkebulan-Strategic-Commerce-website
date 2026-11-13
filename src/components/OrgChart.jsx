@@ -7,7 +7,7 @@ const organizations = [
   {
     key: 'continental-founders',
     name: 'Continental Founders™',
-    logo: '/images/team/continental-founders-logo.jpg',
+    logo: '/images/team/continental-founders-logo.jpg', 
     logoSize: [580, 470],
     logoAlt: 'Continental Founders: Connecting talent, building across continents',
     text: 'A nonprofit organization advancing entrepreneurship, leadership development, research, and economic empowerment across Africa and the global diaspora.',
@@ -115,6 +115,24 @@ function Connector({ from, to, barStart, arrowUp = false, arrowDown = true, vari
 // Opens a person's profile from anywhere in the chart.
 const ProfileContext = createContext(() => {});
 
+// Turns a bio into paragraphs. A bio can be one string, or a list of lines:
+// lines run together as one paragraph, and an empty line '' starts a new one.
+function bioParagraphs(bio) {
+  if (!bio) return [];
+  const paragraphs = [];
+  let current = [];
+  for (const line of [bio].flat()) {
+    if (line.trim() === '') {
+      if (current.length) paragraphs.push(current.join(' '));
+      current = [];
+    } else {
+      current.push(line.trim());
+    }
+  }
+  if (current.length) paragraphs.push(current.join(' '));
+  return paragraphs.map((text) => text.replace(/\s+/g, ' '));
+}
+
 export function ProfileDialog({ person, onClose }) {
   const ref = useRef(null);
 
@@ -145,7 +163,10 @@ export function ProfileDialog({ person, onClose }) {
             {person.org && <p className="eyebrow">{person.org}</p>}
             <h3 id="org-dialog-name">{person.name}</h3>
             <p className="org-dialog-role">{person.role}</p>
-            {person.bio && <p className="org-dialog-bio">{person.bio}</p>}
+            {bioParagraphs(person.bio).map((paragraph) => (
+              <p key={paragraph} className="org-dialog-bio">{paragraph}</p>
+            ))}
+            {person.remitTitle && <p className="org-dialog-remit-title">{person.remitTitle}</p>}
             {person.remit && (
               <ul>
                 {person.remit.map((item) => (
