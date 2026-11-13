@@ -1,4 +1,13 @@
-import { Routes, Route, Link } from 'react-router-dom';
+
+import { useEffect } from 'react';
+
+import {
+  Routes,
+  Route,
+  Link,
+  Navigate,
+  useLocation,
+} from 'react-router-dom';
 
 import Navbar from './components/Navbar.jsx';
 import Footer from './components/Footer.jsx';
@@ -13,14 +22,275 @@ import CSR from './pages/CSR.jsx';
 import Contact from './pages/Contact.jsx';
 import Privacy from './pages/Privacy.jsx';
 
+// ==========================================
+// ALKEBULAN GLOBAL WEBSITE SEO CONFIGURATION
+// ==========================================
+
+const SITE_NAME = 'Alkebulan Global LLC';
+const SITE_URL = 'https://alkebulan-global.com';
+
+const DEFAULT_DESCRIPTION =
+  'Alkebulan Global is a New York-based international strategic advisory, market access and business development firm connecting Africa, the United States, the Caribbean and the global African Diaspora.';
+
+const seoConfig = {
+  '/': {
+    title: 'Alkebulan Global LLC | Global Partners. Real Impact.',
+    description:
+      'Connecting Africa, the United States, the Caribbean and the global African Diaspora through strategic advisory, international trade, investment, partnerships and project development.',
+    keywords:
+      'Alkebulan Global LLC, international strategic advisory, Africa trade, global partnerships, African investment, market access, business development',
+  },
+
+  '/about': {
+    title: 'About Alkebulan Global | Our Vision, Mission & Leadership',
+    description:
+      'Discover Alkebulan Global LLC, a New York-based international strategic advisory and business development firm founded by Ambassador Dr. Karen L. Booker.',
+    keywords:
+      'About Alkebulan Global, Ambassador Dr Karen L Booker, African business leadership, strategic advisory, international business development',
+  },
+
+  '/about/company-snapshot': {
+    title: 'Company Overview | Alkebulan Global LLC',
+    description:
+      'Learn about Alkebulan Global LLC, our international business focus, strategic advisory services, global partnerships and commitment to Africa-centered development.',
+    keywords:
+      'Alkebulan Global company overview, international strategic advisory, global business development',
+  },
+
+  '/about/who-we-are': {
+    title: 'Who We Are | Alkebulan Global LLC',
+    description:
+      'Meet Alkebulan Global, an international strategic connector and market access partner linking African opportunities with global business networks.',
+    keywords:
+      'Who we are Alkebulan Global, Africa global business connections, strategic partnerships',
+  },
+
+  '/about/strategic-partners': {
+    title: 'Strategic Partners | Alkebulan Global',
+    description:
+      'Explore Alkebulan Global’s approach to connecting governments, corporations, investors, project developers and local partners.',
+    keywords:
+      'Alkebulan Global strategic partners, international joint ventures, business partnerships, Africa investment partners',
+  },
+
+  '/about/what-sets-us-apart': {
+    title: 'What Sets Us Apart | Alkebulan Global',
+    description:
+      'Discover how Alkebulan Global combines international access, trusted local relationships, strategic intelligence and commercial networks to enable projects and partnerships.',
+    keywords:
+      'Alkebulan Global difference, project enablement, international market access, strategic business advisory',
+  },
+
+  '/about/our-team': {
+    title: 'Our Team | Alkebulan Global LLC',
+    description:
+      'Meet the leadership and team of Alkebulan Global LLC, led by Founder and CEO Ambassador Dr. Karen L. Booker, and see how our organization is structured.',
+    keywords:
+      'Alkebulan Global team, Ambassador Dr Karen L Booker, Alkebulan Global leadership, organizational chart',
+  },
+
+  '/services': {
+    title: 'Strategic Advisory & Business Development Services | Alkebulan Global',
+    description:
+      'Explore Alkebulan Global’s six strategic focus areas: Mines-to-Market, strategic partnerships, market access, project enablement, leadership and investment advisory.',
+    keywords:
+      'strategic advisory services, Mines-to-Market, market access, project enablement, financial advisory, business development Africa',
+  },
+
+  '/services/sectors': {
+    title: 'Strategic Sectors | Mining, Energy, Infrastructure & More',
+    description:
+      'Explore Alkebulan Global’s priority sectors, including critical minerals, mining, oil and gas, energy, infrastructure, manufacturing, agriculture, technology and logistics.',
+    keywords:
+      'African mining sector, critical minerals, oil and gas, infrastructure development, African manufacturing, energy investment',
+  },
+
+  '/services/core-services': {
+    title: 'Core Services | Alkebulan Global LLC',
+    description:
+      'Discover Alkebulan Global’s core services in strategic partnerships, joint ventures, market access, project development and investment advisory.',
+    keywords:
+      'Alkebulan Global core services, international business advisory, market entry, joint ventures, investment readiness',
+  },
+
+  '/portfolio': {
+    title: 'Projects & Portfolio | Alkebulan Global LLC',
+    description:
+      'Explore Alkebulan Global’s project interests, development initiatives and strategic opportunities across African and international markets.',
+    keywords:
+      'Alkebulan Global projects, African development projects, international investment opportunities, project development',
+  },
+
+  '/csr': {
+    title: 'Corporate Social Responsibility | Alkebulan Global',
+    description:
+      'Learn about Alkebulan Global’s commitment to responsible business, integrity, sustainable development and responsible international partnerships.',
+    keywords:
+      'Alkebulan Global corporate responsibility, responsible business, sustainable development, ethical international trade',
+  },
+
+  '/privacy': {
+    title: 'Privacy Policy | Alkebulan Global LLC',
+    description:
+      'How Alkebulan Global LLC collects and uses information on this website.',
+    keywords: 'Alkebulan Global privacy policy',
+  },
+
+  '/contact': {
+    title: 'Contact Alkebulan Global | Global Business Partnerships',
+    description:
+      'Connect with Alkebulan Global LLC for strategic advisory, market access, international partnerships, trade, investment and project development enquiries.',
+    keywords:
+      'Contact Alkebulan Global, international business enquiries, African investment partnerships, strategic advisory contact',
+  },
+};
+
+// ==========================================
+// SEO META TAG HELPER
+// ==========================================
+
+function updateMeta(attribute, key, content) {
+  let element = document.head.querySelector(
+    `meta[${attribute}="${key}"]`
+  );
+
+  if (!element) {
+    element = document.createElement('meta');
+    element.setAttribute(attribute, key);
+    document.head.appendChild(element);
+  }
+
+  element.setAttribute('content', content);
+}
+
+// ==========================================
+// DYNAMIC SEO COMPONENT
+// ==========================================
+
+function SEO() {
+  const location = useLocation();
+
+  useEffect(() => {
+    // Remove trailing slashes from the current URL.
+    const pathname =
+      location.pathname.replace(/\/+$/, '') || '/';
+
+    const pageSEO = seoConfig[pathname];
+    const isKnownPage = Boolean(pageSEO);
+
+    const currentSEO = pageSEO || {
+      title: 'Page Not Found | Alkebulan Global LLC',
+      description:
+        'The requested page could not be found on the Alkebulan Global website.',
+      keywords: 'Alkebulan Global',
+    };
+
+    // Page title
+    document.title = currentSEO.title;
+
+    // Standard SEO metadata
+    updateMeta(
+      'name',
+      'description',
+      currentSEO.description || DEFAULT_DESCRIPTION
+    );
+
+    updateMeta('name', 'keywords', currentSEO.keywords || '');
+    updateMeta('name', 'author', SITE_NAME);
+
+    updateMeta(
+      'name',
+      'robots',
+      isKnownPage
+        ? 'index, follow, max-image-preview:large'
+        : 'noindex, follow'
+    );
+
+    // Canonical URL
+    let canonical = document.head.querySelector(
+      'link[rel="canonical"]'
+    );
+
+    if (isKnownPage) {
+      if (!canonical) {
+        canonical = document.createElement('link');
+        canonical.rel = 'canonical';
+        document.head.appendChild(canonical);
+      }
+
+      canonical.href = `${SITE_URL}${pathname}`;
+    } else if (canonical) {
+      canonical.remove();
+    }
+
+    // Open Graph metadata
+    updateMeta('property', 'og:type', 'website');
+    updateMeta('property', 'og:site_name', SITE_NAME);
+    updateMeta('property', 'og:title', currentSEO.title);
+
+    updateMeta(
+      'property',
+      'og:description',
+      currentSEO.description || DEFAULT_DESCRIPTION
+    );
+
+    updateMeta(
+      'property',
+      'og:url',
+      `${SITE_URL}${pathname}`
+    );
+
+    updateMeta(
+      'property',
+      'og:image',
+      `${SITE_URL}/images/alkebulan-global-logo.jpg`
+    );
+
+    updateMeta('property', 'og:locale', 'en_US');
+
+    // Twitter metadata
+    updateMeta('name', 'twitter:card', 'summary_large_image');
+    updateMeta('name', 'twitter:title', currentSEO.title);
+
+    updateMeta(
+      'name',
+      'twitter:description',
+      currentSEO.description || DEFAULT_DESCRIPTION
+    );
+
+    updateMeta(
+      'name',
+      'twitter:image',
+      `${SITE_URL}/images/alkebulan-global-logo.jpg`
+    );
+  }, [location.pathname]);
+
+  return null;
+}
+
+// ==========================================
+// NOT FOUND PAGE
+// ==========================================
+
 function NotFound() {
   return (
     <section className="section">
       <div className="container section-head section-head--center">
         <p className="eyebrow">404 — Page not found</p>
-        <h1 className="not-found-title">This page could not be found.</h1>
-        <p>The page may have moved, or the address may be incorrect.</p>
-        <Link className="btn btn--dark" to="/" style={{ marginTop: 28 }}>
+
+        <h1 className="not-found-title">
+          This page could not be found.
+        </h1>
+
+        <p>
+          The page may have moved, or the address may be incorrect.
+        </p>
+
+        <Link
+          className="btn btn--dark"
+          to="/"
+          style={{ marginTop: 28 }}
+        >
           Return Home
         </Link>
       </div>
@@ -28,32 +298,116 @@ function NotFound() {
   );
 }
 
+// ==========================================
+// MAIN APPLICATION
+// ==========================================
+
 export default function App() {
   return (
     <div className="app">
+      <SEO />
+
       <a className="skip-link" href="#main">
         Skip to content
       </a>
+
       <ScrollToTop />
       <Interactions />
+
       <Navbar />
 
       <main id="main" tabIndex="-1">
         <Routes>
+          {/* HOMEPAGE */}
           <Route path="/" element={<Home />} />
 
+          {/* OLD HTML URL REDIRECTS */}
+          <Route
+            path="/index.html"
+            element={<Navigate to="/" replace />}
+          />
+
+          <Route
+            path="/about.html"
+            element={<Navigate to="/about" replace />}
+          />
+
+          <Route
+            path="/contact.html"
+            element={<Navigate to="/contact" replace />}
+          />
+
+          <Route
+            path="/services.html"
+            element={<Navigate to="/services" replace />}
+          />
+
+          <Route
+            path="/service-detail.html"
+            element={<Navigate to="/services" replace />}
+          />
+
+          <Route
+            path="/portfolio.html"
+            element={<Navigate to="/portfolio" replace />}
+          />
+
+          <Route
+            path="/csr.html"
+            element={<Navigate to="/csr" replace />}
+          />
+
+          {/* ABOUT */}
           <Route path="/about" element={<About />} />
+
+          <Route
+            path="/about/company-snapshot"
+            element={<About />}
+          />
+
+          <Route
+            path="/about/who-we-are"
+            element={<About />}
+          />
+
+          <Route
+            path="/about/strategic-partners"
+            element={<About />}
+          />
+
+          <Route
+            path="/about/what-sets-us-apart"
+            element={<About />}
+          />
+
           <Route path="/about/:slug" element={<About />} />
 
+          {/* SERVICES */}
           <Route path="/services" element={<Services />} />
-          <Route path="/services/sectors" element={<Services />} />
-          <Route path="/services/core-services" element={<Services />} />
 
+          <Route
+            path="/services/sectors"
+            element={<Services />}
+          />
+
+          <Route
+            path="/services/core-services"
+            element={<Services />}
+          />
+
+          {/* PORTFOLIO */}
           <Route path="/portfolio" element={<Portfolio />} />
+
+          {/* CORPORATE SOCIAL RESPONSIBILITY */}
           <Route path="/csr" element={<CSR />} />
+
+          {/* CONTACT */}
           <Route path="/contact" element={<Contact />} />
+
+          {/* PRIVACY POLICY */}
           <Route path="/privacy" element={<Privacy />} />
 
+          {/* UNKNOWN URLS */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>

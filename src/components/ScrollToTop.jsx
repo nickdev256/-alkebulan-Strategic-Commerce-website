@@ -46,34 +46,12 @@ const REVEAL_TARGETS = [
   '.partner-orgs li',
 ].join(',');
 
-// Browser-tab title for each page.
-const pageTitles = {
-  '/': 'Alkebulan Global | Strategic Commerce & Development',
-  '/about': 'Company Snapshot',
-  '/about/company-snapshot': 'Company Snapshot',
-  '/about/who-we-are': 'Who We Are',
-  '/about/strategic-partners': 'Strategic Partners',
-  '/about/what-sets-us-apart': 'What Sets Alkebulan Global Apart',
-  '/about/our-team': 'Our Team',
-  '/services': 'Core Services',
-  '/services/sectors': 'Core Sectors',
-  '/services/core-services': 'Core Services',
-  '/portfolio': 'Projects & Engagements',
-  '/csr': 'Corporate Social Responsibility',
-  '/contact': 'Contact Us',
-  '/privacy': 'Privacy Policy',
-};
-
-// On every page change: set the tab title, jump to the top,
-// then set up the scroll animations.
+// On every page change: jump to the top, then set up the scroll animations.
+// (Page titles and SEO tags are set by the SEO component in App.jsx.)
 export default function ScrollToTop() {
   const { pathname } = useLocation();
 
   useEffect(() => {
-    const page = pageTitles[pathname.replace(/\/$/, '') || '/'];
-    document.title =
-      pathname === '/' ? page : `${page ?? 'Page Not Found'} | Alkebulan Global`;
-
     window.scrollTo({ top: 0, behavior: 'instant' });
 
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;

@@ -1,0 +1,18 @@
+
+RewriteEngine On
+
+# Redirect old .html URLs to the correct React routes
+RewriteRule ^about\.html$ /about [R=301,L]
+RewriteRule ^contact\.html$ /contact [R=301,L]
+RewriteRule ^services\.html$ /services [R=301,L]
+RewriteRule ^portfolio\.html$ /portfolio [R=301,L]
+RewriteRule ^csr\.html$ /csr [R=301,L]
+RewriteRule ^index\.html$ / [R=301,L]
+
+# Serve existing files and folders normally
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Send other requests to the React application
+RewriteRule ^ index.html [L]

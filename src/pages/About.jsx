@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import PageHero from '../components/PageHero.jsx';
 import CtaBand from '../components/CtaBand.jsx';
 import PhotoBreak from '../components/PhotoBreak.jsx';
@@ -573,7 +573,11 @@ const content = {
 };
 
 export default function About() {
-  const { slug } = useParams();
+  // Read the sub-page from the address (/about/<page>), so it works whether
+  // the route passes it as a :slug parameter or lists the page directly.
+  const { slug: param } = useParams();
+  const { pathname } = useLocation();
+  const slug = param ?? pathname.split('/')[2];
   const key = pages[slug] ? slug : 'company-snapshot';
   const page = pages[key];
   const Content = content[key];
