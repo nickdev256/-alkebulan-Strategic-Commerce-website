@@ -733,7 +733,7 @@
 }
 
 .org-dialog {
-  width: min(92vw, 760px);
+  width: min(92vw, 960px);
   max-height: 90vh;
   margin: auto;
   padding: 0;
@@ -756,7 +756,7 @@
 .org-dialog-inner {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 300px) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
 }
 
 .org-dialog-inner > img {
@@ -864,6 +864,32 @@
 }
 
 .org-dialog-bio {
-  margin: -4px 0 18px;
-  line-height: 1.7;
+  margin: -4px 0 12px;
+  font-size: 0.95rem;
+  line-height: 1.65;
+}
+
+.org-dialog-bio + .org-dialog-bio {
+  margin-top: 0;
+}
+
+.org-dialog-remit-title {
+  margin: 8px 0 10px;
+  color: var(--gold-light);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+/* Duty lists sit in two columns on wider screens so long profiles still fit */
+@media (min-width: 641px) {
+  .org-dialog-text ul {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 20px;
+  }
+
+  .org-dialog-text {
+    padding: 34px 36px;
+  }
 }
