@@ -1,14 +1,16 @@
 
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useRef, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import Logo from './Logo.jsx';
 import { subPages } from '../navigation.js';
+
 import {
   contactEmail as email,
   contactPhone as phone,
   contactWhatsApp as whatsapp,
   socialLinks,
 } from '../content.js';
+
 import Icon from './Icon.jsx';
 import SocialIcon from './SocialIcon.jsx';
 import './Footer.css';
@@ -28,9 +30,52 @@ const directions =
   encodeURIComponent('1 World Trade Center, Suite 8500, New York, NY 10007');
 
 export default function Footer() {
+  const navigate = useNavigate();
+
   const [subscriber, setSubscriber] = useState('');
   const [status, setStatus] = useState('idle');
+  const [showCmsLoader, setShowCmsLoader] = useState(false);
 
+  const logoClicks = useRef(0);
+  const clickTimer = useRef(null);
+  const redirectTimer = useRef(null);
+
+  // Clean up timers when the footer unmounts.
+  useEffect(() => {
+    return () => {
+      clearTimeout(clickTimer.current);
+      clearTimeout(redirectTimer.current);
+    };
+  }, []);
+
+  // Hidden CMS access: click the logo three times.
+  function handleLogoClick(event) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (showCmsLoader) return;
+
+    logoClicks.current += 1;
+
+    clearTimeout(clickTimer.current);
+
+    if (logoClicks.current >= 3) {
+      logoClicks.current = 0;
+      setShowCmsLoader(true);
+
+      redirectTimer.current = setTimeout(() => {
+        navigate('/admin/login');
+      }, 1800);
+
+      return;
+    }
+
+    clickTimer.current = setTimeout(() => {
+      logoClicks.current = 0;
+    }, 1800);
+  }
+
+  // Newsletter subscription.
   async function handleSubscribe(event) {
     event.preventDefault();
 
@@ -74,8 +119,25 @@ export default function Footer() {
     <footer className="site-footer">
       <div className="container">
         <div className="footer-grid">
+
+          {/* Brand and social links */}
           <div className="footer-brand">
-            <Logo size="lg" />
+
+            <div
+              className="footer-secret-logo"
+              onClick={handleLogoClick}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  handleLogoClick(event);
+                }
+              }}
+              role="button"
+              tabIndex={0}
+              aria-label="Alkebulan Global"
+              title="Alkebulan Global"
+            >
+              <Logo size="lg" />
+            </div>
 
             <p>
               Bridging policy, commerce, and execution to expand
@@ -96,7 +158,10 @@ export default function Footer() {
               ))}
             </ul>
 
-            <ul className="footer-social" aria-label="Follow Alkebulan Global">
+            <ul
+              className="footer-social"
+              aria-label="Follow Alkebulan Global"
+            >
               {socialLinks.map((item) => (
                 <li key={item.name}>
                   {item.url ? (
@@ -111,7 +176,9 @@ export default function Footer() {
                   ) : (
                     <span title={`${item.name} (link coming soon)`}>
                       <SocialIcon name={item.icon} />
-                      <span className="visually-hidden">{item.name}</span>
+                      <span className="visually-hidden">
+                        {item.name}
+                      </span>
                     </span>
                   )}
                 </li>
@@ -119,6 +186,7 @@ export default function Footer() {
             </ul>
           </div>
 
+          {/* Company links */}
           <div className="footer-col">
             <h3>Company</h3>
             <Link to="/about">About Us</Link>
@@ -127,8 +195,10 @@ export default function Footer() {
             <Link to="/contact">Engage</Link>
           </div>
 
+          {/* Expertise links */}
           <div className="footer-col">
             <h3>Expertise</h3>
+
             {expertise.map((item) => (
               <Link key={item.path} to={item.path}>
                 {item.label}
@@ -136,6 +206,7 @@ export default function Footer() {
             ))}
           </div>
 
+          {/* Contact information */}
           <div className="footer-col footer-contact">
             <h3>Contact</h3>
 
@@ -156,16 +227,23 @@ export default function Footer() {
             >
               <Icon name="chat" size={18} />
               <span>
-                {whatsapp} <small>WhatsApp</small>
+                {whatsapp}
+                <small>WhatsApp</small>
               </span>
             </a>
           </div>
 
+          {/* Headquarters */}
           <div className="footer-col footer-contact">
             <h3>Headquarters</h3>
 
-            <a href={directions} target="_blank" rel="noopener noreferrer">
+            <a
+              href={directions}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               <Icon name="pin" size={18} />
+
               <address>
                 Alkebulan Global LLC
                 <br />
@@ -176,19 +254,28 @@ export default function Footer() {
             </a>
 
             <p className="footer-offices">
-              Satellite offices in Uganda, Namibia, Mozambique, and Nigeria.
+              Satellite offices in Uganda, Namibia, Mozambique,
+              and Nigeria.
             </p>
           </div>
+
         </div>
 
+        {/* Newsletter subscription */}
         <div className="footer-subscribe">
           <div className="subscribe-text">
             <h3>Stay Connected</h3>
             <p>Get updates on our sectors and projects.</p>
           </div>
 
-          <form className="subscribe-form" onSubmit={handleSubscribe}>
-            <label htmlFor="subscribe-email" className="visually-hidden">
+          <form
+            className="subscribe-form"
+            onSubmit={handleSubscribe}
+          >
+            <label
+              htmlFor="subscribe-email"
+              className="visually-hidden"
+            >
               Email address
             </label>
 
@@ -202,7 +289,10 @@ export default function Footer() {
                 value={subscriber}
                 onChange={(event) => {
                   setSubscriber(event.target.value);
-                  if (status !== 'idle') setStatus('idle');
+
+                  if (status !== 'idle') {
+                    setStatus('idle');
+                  }
                 }}
                 required
                 maxLength={254}
@@ -214,37 +304,41 @@ export default function Footer() {
                 type="submit"
                 disabled={status === 'sending'}
               >
-                {status === 'sending' ? 'Subscribing…' : 'Subscribe'}
+                {status === 'sending'
+                  ? 'Subscribing…'
+                  : 'Subscribe'}
               </button>
             </div>
 
             <p className="subscribe-note">
-              By subscribing, you agree to receive occasional updates from
-              Alkebulan Global.
+              By subscribing, you agree to receive occasional
+              updates from Alkebulan Global.
             </p>
 
             <div aria-live="polite">
               {status === 'sent' && (
                 <p className="subscribe-note" role="status">
-                  Thank you for subscribing! Please check your inbox for a
-                  welcome email.
+                  Thank you for subscribing! Please check your
+                  inbox for a welcome email.
                 </p>
               )}
 
               {status === 'error' && (
                 <p className="subscribe-note" role="alert">
-                  Sorry, we could not complete your subscription. Please try
-                  again.
+                  Sorry, we could not complete your subscription.
+                  Please try again.
                 </p>
               )}
             </div>
           </form>
         </div>
 
+        {/* Footer bottom */}
         <div className="footer-bottom">
           <p>
-            © {new Date().getFullYear()} Alkebulan Global LLC. All rights
-            reserved.{' '}
+            © {new Date().getFullYear()} Alkebulan Global LLC.
+            All rights reserved.{' '}
+
             <Link to="/privacy" className="footer-legal">
               Privacy Policy
             </Link>
@@ -255,6 +349,36 @@ export default function Footer() {
           </p>
         </div>
       </div>
+
+      {/* Hidden CMS loading animation */}
+      {showCmsLoader && (
+        <div
+          className="cms-loading-overlay"
+          role="status"
+          aria-live="polite"
+          aria-label="Opening administration portal"
+        >
+          <div className="cms-loader-content">
+
+            <div className="cms-globe">
+              <span className="cms-globe-meridian" />
+              <span className="cms-globe-equator" />
+              <span className="cms-globe-core">✦</span>
+            </div>
+
+            <h2>ALKEBULAN GLOBAL</h2>
+
+            <p>
+              Preparing your administration portal...
+            </p>
+
+            <div className="cms-loading-line">
+              <span />
+            </div>
+
+          </div>
+        </div>
+      )}
     </footer>
   );
 }
