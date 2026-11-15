@@ -9,6 +9,7 @@ import {
   useLocation,
 } from 'react-router-dom';
 
+// Public website components
 import Navbar from './components/Navbar.jsx';
 import Footer from './components/Footer.jsx';
 import ScrollToTop from './components/ScrollToTop.jsx';
@@ -16,6 +17,7 @@ import Interactions from './components/Interactions.jsx';
 import Motion from './components/Motion.jsx';
 import { startSmoothScroll, stopSmoothScroll } from './lib/smoothScroll.js';
 
+// Public website pages
 import Home from './pages/Home.jsx';
 import About from './pages/About.jsx';
 import Services from './pages/Services.jsx';
@@ -23,6 +25,16 @@ import Portfolio from './pages/Portfolio.jsx';
 import CSR from './pages/CSR.jsx';
 import Contact from './pages/Contact.jsx';
 import Privacy from './pages/Privacy.jsx';
+
+// CMS authentication
+import { AuthProvider } from './admin/context/AuthContext';
+import ProtectedRoute from './admin/components/ProtectedRoute';
+
+// CMS pages
+import AdminLogin from './admin/pages/AdminLogin';
+import AdminRegister from './admin/pages/AdminRegister';
+import ForgotPassword from './admin/pages/ForgotPassword';
+import AdminDashboard from './admin/pages/AdminDashboard';
 
 // ==========================================
 // ALKEBULAN GLOBAL WEBSITE SEO CONFIGURATION
@@ -180,7 +192,6 @@ function SEO() {
   const location = useLocation();
 
   useEffect(() => {
-    // Remove trailing slashes from the current URL.
     const pathname =
       location.pathname.replace(/\/+$/, '') || '/';
 
@@ -308,12 +319,16 @@ function NotFound() {
 }
 
 // ==========================================
-// MAIN APPLICATION
+// APPLICATION CONTENT
 // ==========================================
 
-export default function App() {
+function AppContent() {
+  const location = useLocation();
   // Each page fades and rises into place when the address changes.
-  const { pathname } = useLocation();
+  const { pathname } = location;
+
+  // Identify CMS routes
+  const isAdminRoute = pathname.startsWith('/admin');
 
   // Smooth scrolling for the whole site (Lenis + GSAP).
   useEffect(() => {
@@ -322,26 +337,39 @@ export default function App() {
   }, []);
 
   return (
-    <div className="app">
-      <SEO />
+    <div className={`app ${isAdminRoute ? 'admin-app' : ''}`}>
 
-      <a className="skip-link" href="#main">
-        Skip to content
-      </a>
+      {/* Public website SEO */}
+      {!isAdminRoute && <SEO />}
 
+      {/* Accessibility skip link */}
+      {!isAdminRoute && (
+        <a className="skip-link" href="#main">
+          Skip to content
+        </a>
+      )}
+
+      {/* Global utilities */}
       <ScrollToTop />
-      <Interactions />
-      <Motion />
 
-      <Navbar />
+      {!isAdminRoute && <Interactions />}
+      {!isAdminRoute && <Motion />}
+
+      {/* Public website navigation */}
+      {!isAdminRoute && <Navbar />}
 
       <main id="main" tabIndex="-1">
         <div className="page-transition" key={pathname}>
         <Routes>
-          {/* HOMEPAGE */}
+
+          {/* =====================================
+              PUBLIC WEBSITE ROUTES
+          ===================================== */}
+
+          {/* Homepage */}
           <Route path="/" element={<Home />} />
 
-          {/* OLD HTML URL REDIRECTS */}
+          {/* Old HTML URL redirects */}
           <Route
             path="/index.html"
             element={<Navigate to="/" replace />}
@@ -377,8 +405,11 @@ export default function App() {
             element={<Navigate to="/csr" replace />}
           />
 
-          {/* ABOUT */}
-          <Route path="/about" element={<About />} />
+          {/* About */}
+          <Route
+            path="/about"
+            element={<About />}
+          />
 
           <Route
             path="/about/company-snapshot"
@@ -400,10 +431,16 @@ export default function App() {
             element={<About />}
           />
 
-          <Route path="/about/:slug" element={<About />} />
+          <Route
+            path="/about/:slug"
+            element={<About />}
+          />
 
-          {/* SERVICES */}
-          <Route path="/services" element={<Services />} />
+          {/* Services */}
+          <Route
+            path="/services"
+            element={<Services />}
+          />
 
           <Route
             path="/services/sectors"
@@ -415,25 +452,93 @@ export default function App() {
             element={<Services />}
           />
 
-          {/* PORTFOLIO */}
-          <Route path="/portfolio" element={<Portfolio />} />
+          {/* Portfolio */}
+          <Route
+            path="/portfolio"
+            element={<Portfolio />}
+          />
 
-          {/* CORPORATE SOCIAL RESPONSIBILITY */}
-          <Route path="/csr" element={<CSR />} />
+          {/* Corporate Social Responsibility */}
+          <Route
+            path="/csr"
+            element={<CSR />}
+          />
 
-          {/* CONTACT */}
-          <Route path="/contact" element={<Contact />} />
+          {/* Contact */}
+          <Route
+            path="/contact"
+            element={<Contact />}
+          />
 
-          {/* PRIVACY POLICY */}
-          <Route path="/privacy" element={<Privacy />} />
+          {/* Privacy */}
+          <Route
+            path="/privacy"
+            element={<Privacy />}
+          />
 
-          {/* UNKNOWN URLS */}
-          <Route path="*" element={<NotFound />} />
+
+          {/* =====================================
+              CMS AUTHENTICATION ROUTES
+          ===================================== */}
+
+          <Route
+            path="/admin/login"
+            element={<AdminLogin />}
+          />
+
+          <Route
+            path="/admin/register"
+            element={<AdminRegister />}
+          />
+
+          <Route
+            path="/admin/forgot-password"
+            element={<ForgotPassword />}
+          />
+
+
+          {/* =====================================
+              PROTECTED CMS ROUTES
+          ===================================== */}
+
+          <Route element={<ProtectedRoute />}>
+
+            <Route
+              path="/admin/dashboard"
+              element={<AdminDashboard />}
+            />
+
+          </Route>
+
+
+          {/* =====================================
+              UNKNOWN ROUTES
+          ===================================== */}
+
+          <Route
+            path="*"
+            element={<NotFound />}
+          />
+
         </Routes>
         </div>
       </main>
 
-      <Footer />
+      {/* Public website footer */}
+      {!isAdminRoute && <Footer />}
+
     </div>
+  );
+}
+
+// ==========================================
+// MAIN APPLICATION WITH AUTH PROVIDER
+// ==========================================
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
