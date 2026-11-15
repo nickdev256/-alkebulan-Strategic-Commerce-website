@@ -1,0 +1,48 @@
+
+.ag-register-invited-email {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 13px 15px;
+  margin-bottom: 22px;
+  background: #f8f5ed;
+  border-left: 3px solid #b79552;
+}
+
+.ag-register-invited-email span {
+  color: #8993a2;
+  font-size: 10px;
+}
+
+.ag-register-invited-email strong {
+  color: #17263c;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.ag-register-success {
+  padding: 25px 10px;
+  text-align: center;
+}
+
+.ag-register-success svg {
+  color: #b79552;
+}
+
+.ag-register-success h2 {
+  margin: 15px 0 8px;
+  color: #10213a;
+  font-size: 21px;
+}
+
+.ag-register-success p {
+  color: #758092;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.ag-register-loading {
+  color: #d8b66a;
+  font-size: 13px;
+  letter-spacing: 1px;
+}
