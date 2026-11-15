@@ -48,8 +48,8 @@ export const services = [
   {
     icon: 'users',
     title: 'Leadership & Organizational Performance',
-    summary: 'Strengthening leadership capacity, organizational effectiveness, governance, strategic planning, and institutional performance.',
-    text: 'Strengthening institutional capacity through executive advisory, strategic planning, leadership development, organizational effectiveness, governance improvement, and performance transformation.',
+    summary: 'Strengthening leadership capacity, knowledge exchange, organizational effectiveness, governance, strategic planning, and institutional performance.',
+    text: 'Strengthening institutional capacity through executive advisory, strategic planning, leadership development, knowledge exchange, organizational effectiveness, governance improvement, and performance transformation.',
     detail: 'We recognize that successful commercial initiatives require not only financial and technical resources but also competent leadership and effective organizations.',
   },
   {
@@ -69,6 +69,18 @@ export const advantages = [
   { title: 'Discretion', text: 'Managing sensitive commercial discussions, strategic relationships, and confidential information with professionalism.' },
   { title: 'Execution', text: 'Advancing opportunities through structured engagement, clear responsibilities, commercial milestones, and practical implementation pathways.' },
   { title: 'Exceptional Opportunity', text: 'Identifying high-potential opportunities where strategic alignment, market demand, and credible partnerships can create sustainable value.' },
+];
+
+// Countries where Alkebulan Global has an office (also its country partners).
+// Used, in this order, by the footer flags, the Contact page and the
+// organizational chart.
+export const offices = [
+  { country: 'United States', code: 'us', role: 'Headquarters · New York' },
+  { country: 'Mozambique', code: 'mz', role: 'Satellite office' },
+  { country: 'Nigeria', code: 'ng', role: 'Satellite office' },
+  { country: 'Uganda', code: 'ug', role: 'Satellite office' },
+  { country: 'Zambia', code: 'zm', role: 'Satellite office' },
+  { country: 'Namibia', code: 'na', role: 'Satellite office' },
 ];
 
 export const contactEmail = 'info@alkebulan-global.com';

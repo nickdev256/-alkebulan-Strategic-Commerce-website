@@ -1,0 +1,192 @@
+/* Phone number field with a country-code picker (matches the form inputs) */
+
+.phone-field {
+  position: relative;
+  display: flex;
+  min-height: 50px;
+  border: 1px solid #d9d2c3;
+  border-radius: var(--radius-sm);
+  background: #fcfbf8;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.phone-field:hover {
+  border-color: var(--gold);
+}
+
+.phone-field:focus-within,
+.phone-field.is-open {
+  border-color: var(--gold);
+  background: var(--white);
+  box-shadow: 0 0 0 3px rgba(201, 162, 74, 0.2);
+}
+
+.phone-country {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px 0 14px;
+  border: 0;
+  border-right: 1px solid #e6dfd1;
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.phone-country:hover {
+  background: rgba(201, 162, 74, 0.08);
+}
+
+.phone-country:focus-visible {
+  outline: none;
+  background: rgba(201, 162, 74, 0.12);
+}
+
+.phone-country img,
+.phone-list img {
+  width: 24px;
+  height: 16px;
+  border-radius: 2px;
+  object-fit: cover;
+  box-shadow: 0 0 0 1px rgba(11, 26, 46, 0.12);
+}
+
+.phone-dial {
+  font-weight: 600;
+}
+
+.phone-country svg {
+  color: var(--muted);
+  transition: transform 0.2s ease;
+}
+
+.phone-field.is-open .phone-country svg {
+  transform: rotate(180deg);
+}
+
+/* The number box inside the field (overrides the general .field input look) */
+.field .phone-field input[type='tel'] {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.field .phone-field input[type='tel']:hover,
+.field .phone-field input[type='tel']:focus {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+/* Dropdown */
+.phone-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 20;
+  width: min(340px, calc(100vw - 48px));
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--white);
+  box-shadow: 0 24px 48px -16px rgba(11, 26, 46, 0.35);
+  animation: phone-menu-in 0.18s ease both;
+}
+
+.phone-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+.phone-search svg {
+  position: absolute;
+  left: 22px;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.field .phone-search input {
+  min-height: 40px;
+  padding: 8px 12px 8px 38px;
+}
+
+.phone-list {
+  max-height: 280px;
+  margin: 0;
+  padding: 6px;
+  overflow-y: auto;
+  list-style: none;
+  overscroll-behavior: contain;
+}
+
+.phone-list li[role='option'] {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  color: var(--ink);
+  font-size: 0.92rem;
+  cursor: pointer;
+}
+
+.phone-list li.is-active {
+  background: var(--cream);
+}
+
+.phone-list li.is-selected {
+  font-weight: 700;
+}
+
+.phone-list li.is-selected .phone-code {
+  color: var(--gold-dark);
+}
+
+.phone-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.phone-code {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.phone-divider {
+  height: 1px;
+  margin: 6px 4px;
+  background: var(--line);
+}
+
+.phone-empty {
+  padding: 14px 10px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+@keyframes phone-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .phone-menu {
+    animation: none;
+  }
+}

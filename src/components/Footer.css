@@ -166,9 +166,14 @@
     padding-top: 56px;
   }
 
+  /* Company and Expertise side by side; brand, contact and address full width */
   .footer-grid {
-    grid-template-columns: 1fr;
-    gap: 32px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 32px 20px;
+  }
+
+  .footer-contact {
+    grid-column: 1 / -1;
   }
 
   .footer-bottom {
@@ -257,7 +262,7 @@
 .subscribe-note {
   margin-top: 8px;
   color: var(--gold-light);
-  font-size: 0.78rem;
+  font-size: 0.82rem;
   text-align: right;
 }
 
@@ -295,4 +300,30 @@
 
 .footer-legal:hover {
   color: var(--gold-light);
+}
+
+/* Phones: every footer link is a comfortable 44px tap target */
+@media (max-width: 700px) {
+  .footer-col a {
+    min-height: 44px;
+    margin-bottom: 0;
+  }
+
+  .footer-contact a {
+    align-items: center;
+    margin-bottom: 4px;
+  }
+
+  .footer-contact svg {
+    margin-top: 0;
+  }
+
+  .footer-legal {
+    display: inline-block;
+    padding: 12px 4px;
+  }
+
+  .subscribe-field input {
+    min-height: 44px;
+  }
 }

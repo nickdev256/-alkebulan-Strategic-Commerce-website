@@ -3,7 +3,6 @@
   padding-top: 72px;
   overflow: hidden;
   background:
-    radial-gradient(circle at 85% 0%, rgba(201, 162, 74, 0.16), transparent 45%),
     linear-gradient(160deg, var(--navy-900), var(--navy-950));
   color: rgba(255, 255, 255, 0.75);
 }
@@ -58,7 +57,7 @@
   position: absolute;
   inset: 0 auto 0 0;
   width: 50%;
-  background: radial-gradient(circle at 0% 100%, rgba(201, 162, 74, 0.18), transparent 60%);
+  background: none;
   pointer-events: none;
 }
 
@@ -240,5 +239,12 @@
     padding: 7px 7px;
     font-size: 0.8rem;
     letter-spacing: 0;
+  }
+}
+
+/* Phones: taller sub-page tabs so they are easy to tap */
+@media (max-width: 700px) {
+  .page-tabs a {
+    padding: 12px 18px;
   }
 }

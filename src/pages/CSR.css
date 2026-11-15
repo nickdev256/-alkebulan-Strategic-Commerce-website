@@ -3,7 +3,6 @@
   padding: 48px 40px;
   border-radius: 16px;
   background:
-    radial-gradient(circle at 100% 0%, rgba(201, 162, 74, 0.22), transparent 55%),
     var(--navy-900);
 }
 
@@ -53,9 +52,16 @@
   font-size: 0.85rem;
 }
 
-.checklist--light li {
+.section--dark .checklist--light li {
   border-color: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.85);
+  color: #efe9dd;
+}
+
+/* Brighter gold ticks so they show on navy */
+.section--dark .checklist--light li::before {
+  background: rgba(228, 199, 127, 0.18)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23e4c77f' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E")
+    center / 11px no-repeat;
 }
 
 /* Twelve policies: two columns where there is room */
@@ -63,5 +69,30 @@
   .checklist--light {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     column-gap: 28px;
+  }
+}
+
+/* Focus areas: rows of three, with any last-row cards centred */
+.csr-focus {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 24px;
+}
+
+.csr-focus > .card {
+  flex: 0 1 calc((100% - 48px) / 3);
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .csr-focus > .card {
+    flex-basis: calc((100% - 24px) / 2);
+  }
+}
+
+@media (max-width: 600px) {
+  .csr-focus > .card {
+    flex-basis: 100%;
   }
 }

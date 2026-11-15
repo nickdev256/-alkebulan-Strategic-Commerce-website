@@ -1,88 +1,14 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
+import { scrollToTarget } from '../lib/smoothScroll.js';
 
-// Blocks that fade up as they scroll into view.
-const REVEAL_TARGETS = [
-  '.section-head',
-  '.home-head',
-  '.card',
-  '.service-steps li',
-  '.service-row',
-  '.work-step',
-  '.prose',
-  '.brand-card',
-  '.checklist li',
-  '.csr-quote',
-  '.cta-band',
-  '.portfolio-note',
-  '.contact-form',
-  '.contact-aside',
-  '.channel-card',
-  '.hq-card',
-  '.office-card',
-  '.pillars span',
-  '.sector-grid li',
-  '.partner-types li',
-  '.question-grid li',
-  '.markets-card',
-  '.advantage-list li',
-  '.diaspora-card',
-  '.stage-list li',
-  '.area-list li',
-  '.leader-badge',
-  '.intro-photos',
-  '.intro-text',
-  '.intro-facts div',
-  '.photo-break-caption',
-  '.org-person',
-  '.org-unit',
-  '.org-shared',
-  '.stage-panel',
-  '.privacy-section',
-  '.privacy-contact',
-  '.explorer',
-  '.roles',
-  '.team-card',
-  '.partner-orgs li',
-].join(',');
-
-// On every page change: jump to the top, then set up the scroll animations.
-// (Page titles and SEO tags are set by the SEO component in App.jsx.)
+// On every page change, start at the top of the new page.
+// (Scroll animations are in Motion.jsx; page titles and SEO in App.jsx.)
 export default function ScrollToTop() {
   const { pathname } = useLocation();
 
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'instant' });
-
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reduceMotion || !('IntersectionObserver' in window)) return;
-
-    const elements = [...document.querySelectorAll(REVEAL_TARGETS)];
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('is-visible');
-            observer.unobserve(entry.target);
-          }
-        });
-      },
-      { rootMargin: '0px 0px -8% 0px', threshold: 0.12 },
-    );
-
-    elements.forEach((el) => {
-      // Stagger items that sit side by side in the same grid or list.
-      const siblings = [...el.parentElement.children].filter((child) =>
-        child.matches(REVEAL_TARGETS),
-      );
-      const index = Math.min(siblings.indexOf(el), 5);
-      el.style.setProperty('--reveal-delay', `${index * 80}ms`);
-      el.classList.add('reveal');
-      observer.observe(el);
-    });
-
-    return () => observer.disconnect();
+    scrollToTarget(0, { immediate: true });
   }, [pathname]);
 
   return null;

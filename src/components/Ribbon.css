@@ -1,0 +1,88 @@
+/* ---------- Moving ribbon ---------- */
+
+.ribbon {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Soft fade at both ends, painted in the strip's own background colour
+   (set --ribbon-bg on each ribbon) so nothing behind shows through. */
+.ribbon::before,
+.ribbon::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 1;
+  width: 7%;
+  pointer-events: none;
+}
+
+.ribbon::before {
+  left: 0;
+  background: linear-gradient(90deg, var(--ribbon-bg, #fff), transparent);
+}
+
+.ribbon::after {
+  right: 0;
+  background: linear-gradient(270deg, var(--ribbon-bg, #fff), transparent);
+}
+
+.ribbon-track {
+  display: flex;
+  width: max-content;
+  animation: ribbon-scroll var(--ribbon-speed, 40s) linear infinite;
+}
+
+.ribbon--reverse .ribbon-track {
+  animation-direction: reverse;
+}
+
+.ribbon:hover .ribbon-track {
+  animation-play-state: paused;
+}
+
+.ribbon-list {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ribbon-list li {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  white-space: nowrap;
+}
+
+@keyframes ribbon-scroll {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* Still for visitors who prefer less motion: show one centred, wrapped list */
+@media (prefers-reduced-motion: reduce) {
+  .ribbon::before,
+  .ribbon::after {
+    display: none;
+  }
+
+  .ribbon-track {
+    width: auto;
+    animation: none;
+  }
+
+  .ribbon-list {
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+  }
+
+  .ribbon-list[aria-hidden='true'] {
+    display: none;
+  }
+}

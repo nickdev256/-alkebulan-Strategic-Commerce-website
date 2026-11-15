@@ -4,17 +4,55 @@ import Hero from '../sections/Hero.jsx';
 import Icon from '../components/Icon.jsx';
 import CtaBand from '../components/CtaBand.jsx';
 import PhotoBreak from '../components/PhotoBreak.jsx';
-import { advantages, sectors, services } from '../content.js';
+import Ribbon from '../components/Ribbon.jsx';
+import { advantages, offices, sectors, services } from '../content.js';
 import './Home.css';
 
 // The five strategic advantages, shown as a gold strip under the banner.
 const pillars = advantages.map((item) => item.title);
 
+// Repeated so the moving strip is always wider than the screen.
+const pillarItems = [0, 1, 2].flatMap((round) =>
+  pillars.map((title) => ({
+    key: `${round}-${title}`,
+    content: (
+      <>
+        <span className="pillar-word">{title}</span>
+        <span className="pillar-mark" aria-hidden="true" />
+      </>
+    ),
+  })),
+);
+
+// Where we work: office countries with flags, plus wider regions.
+const placeItems = [0, 1].flatMap((round) => [
+  ...offices.map((office) => ({
+    key: `${round}-${office.code}`,
+    content: (
+      <span className="place">
+        <img src={`https://flagcdn.com/${office.code}.svg`} alt="" width="36" height="24" loading="lazy" />
+        {office.country}
+      </span>
+    ),
+  })),
+  ...['The Caribbean', 'Global African Diaspora'].map((region) => ({
+    key: `${round}-${region}`,
+    content: (
+      <span className="place">
+        <span className="place-globe" aria-hidden="true">
+          <Icon name="globe" size={18} />
+        </span>
+        {region}
+      </span>
+    ),
+  })),
+]);
+
 // Quick facts beside the Who We Are introduction.
 const facts = [
   { label: 'Founder & CEO', value: 'Ambassador Dr. Karen L. Booker', link: '/about/our-team' },
   { label: 'Headquarters', value: 'One World Trade Center, New York' },
-  { label: 'Satellite offices', value: 'Uganda, Namibia, Mozambique, Nigeria' },
+  { label: 'Satellite offices', value: 'Mozambique, Nigeria, Uganda, Zambia, Namibia' },
   { label: 'Connecting', value: 'Africa, the U.S., the Caribbean & global markets' },
 ];
 
@@ -89,13 +127,7 @@ export default function Home() {
     <>
       <Hero />
 
-      <div className="pillars">
-        <div className="container">
-          {pillars.map((item) => (
-            <span key={item}>{item}</span> 
-          ))}
-        </div>
-      </div>
+      <Ribbon className="pillars" items={pillarItems} label="Our strategic advantages" speed={45} />
 
       {/* Who we are: the first thing visitors read after the banner */}
       <section className="section section--white home-about">
@@ -154,6 +186,14 @@ export default function Home() {
             />
           </div>
         </div>
+      </section>
+
+      {/* Where we work: moving ribbon of countries and regions */}
+      <section className="places" aria-labelledby="places-title">
+        <div className="container places-head">
+          <p className="eyebrow" id="places-title">Where we work</p>
+        </div>
+        <Ribbon className="places-ribbon" items={placeItems} label="Countries and regions where we work" speed={50} reverse />
       </section>
 
       {/* Core Sectors */}
@@ -219,7 +259,7 @@ export default function Home() {
       <div className="section--white">
         <CtaBand
           title="Ready to Explore an Opportunity?"
-          text="Connect with Alkebulan Global to discuss strategic partnerships, market access, and transformative projects."
+          text="Speak with our team about partnerships, market access, sourcing, or a project you are developing."
         />
       </div>
     </>

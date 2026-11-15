@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
+import { photoSrcSet } from '../lib/images.js';
 import './PageHero.css';
 
 // Banner at the top of every inner page. `tabs` adds sub-page links.
@@ -23,6 +24,8 @@ export default function PageHero({ eyebrow, title, intro, tabs, image, imageAlt 
         <div className="page-hero-bg">
           <img
             src={image}
+            srcSet={photoSrcSet(image)}
+            sizes="(max-width: 700px) 100vw, 80vw"
             alt={imageAlt}
             width="1100"
             height="1560"

@@ -201,7 +201,6 @@
   padding: 40px 36px;
   border-radius: 20px;
   background:
-    radial-gradient(circle at 100% 0%, rgba(201, 162, 74, 0.22), transparent 55%),
     var(--navy-900);
   color: rgba(255, 255, 255, 0.72);
 }
@@ -320,7 +319,7 @@
 
 .office-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
   margin: 24px 0 0;
   padding: 0;

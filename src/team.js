@@ -9,6 +9,13 @@ export const ceo = {
   role: 'Founder & Chief Executive Officer',
   org: 'Alkebulan Global LLC',
   photo: '/images/team/karen-booker.jpg',
+  // Her social media profiles, shown under her bio on the Our Team page.
+  // Links copied from her Continental Founders profile (she has no X account listed).
+  social: [
+    { name: 'LinkedIn', icon: 'linkedin', url: 'https://www.linkedin.com/in/dr-karen-l-booker-cit-ccc/' },
+    { name: 'Facebook', icon: 'facebook', url: 'https://www.facebook.com/klynn1156' },
+    { name: 'Instagram', icon: 'instagram', url: 'https://www.instagram.com/klynn1156/' },
+  ],
   remit: [
     'Alkebulan Global LLC',
     'Continental Founders',
@@ -40,6 +47,25 @@ export const advisors = [
   },
 ];
 
+// Nonprofit partner leadership (Continental Founders). Bios are from the
+// Continental Founders website.
+export const cfLeads = [
+  {
+    name: 'Sharneise Allen',
+    role: 'Vice Chair, Operations',
+    org: 'Continental Founders',
+    photo: '/images/team/sharneise-allen.jpg',
+    bio: 'Sharneise Allen is an education leader, entrepreneur, and youth development strategist with extensive experience designing transformational programs for students, educators, athletes, and communities. She works across entrepreneurship, financial literacy, leadership, SEL, workforce readiness, and sports-based mentorship.',
+  },
+  {
+    name: 'Dr. Zaneta Brown-Ingles',
+    role: 'Vice Chair, Strategic Relations',
+    org: 'Continental Founders',
+    photo: '/images/team/zaneta-brown-ingles.jpg',
+    bio: 'Dr. Zaneta Brown-Ingles, Ed.D., is an educational leader, author, consultant, strategist, and advocate with more than 20 years of experience in K–12 education, literacy, leadership development, and strategic partnerships.',
+  },
+];
+
 // Technology partner leadership (Eth-Tech Solutions).
 export const techLeads = [
   {
@@ -47,6 +73,8 @@ export const techLeads = [
     role: 'Co-Founder & Chief Executive Officer',
     org: 'Eth-Tech Solutions',
     photo: '/images/team/dave-kwagala.jpg',
+    // Email address for the envelope icon on the Our Team card (e.g. 'name@example.com').
+    email: '',
     bio: [
       'Dave is a Co-Founder and CEO of Eth-Tech Solutions, where he leads strategy and oversees staffing,',
       'project management, business development, marketing, and operations. Having worked with government agencies,',
@@ -69,6 +97,8 @@ export const techLeads = [
     role: 'Founder & Chief Executive Officer',
     org: 'Eth-Tech Solutions',
     photo: '/images/team/nicholas-ssentongo.jpg',
+    // Email address for the envelope icon on the Our Team card (e.g. 'name@example.com').
+    email: '',
     bio: [
       "Nicholas Ssentongo is the Founder and Chief Executive Officer of Eth-Tech Solutions, where he leads the company's vision,",
       'technology strategy and delivery of innovative digital solutions. With a strong background in software engineering, web development',

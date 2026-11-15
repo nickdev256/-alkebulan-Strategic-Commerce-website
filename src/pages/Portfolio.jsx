@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import PageHero from '../components/PageHero.jsx';
 import CtaBand from '../components/CtaBand.jsx';
 import PhotoBreak from '../components/PhotoBreak.jsx';
 import Icon from '../components/Icon.jsx';
+import { activeProjects, projectSectors } from '../projects.js';
+import { scrollToTarget } from '../lib/smoothScroll.js';
 import './Portfolio.css';
 
 // Areas of potential engagement, each with a short description.
@@ -11,36 +13,42 @@ const projects = [
   {
     icon: 'bolt',
     category: 'Energy',
+    sector: 'energy',
     title: 'Energy & Infrastructure',
     text: 'Exploring strategic relationships between energy developers, infrastructure partners, investors and international markets to support commercially viable opportunities.',
   },
   {
     icon: 'mountain',
     category: 'Critical Minerals',
+    sector: 'minerals',
     title: 'Responsible Mineral Sourcing',
     text: 'Supporting responsible sourcing initiatives, supply-chain transparency, traceability and partnerships that align with international due diligence expectations.',
   },
   {
     icon: 'factory',
     category: 'Manufacturing',
+    sector: 'manufacturing',
     title: 'African Manufacturing',
     text: 'Exploring opportunities for African manufacturers to strengthen market readiness, meet international buyer requirements and expand their global reach.',
   },
   {
     icon: 'wheat',
     category: 'Agriculture',
+    sector: 'agriculture',
     title: 'Agricultural Trade & Exports',
     text: 'Connecting agricultural producers and businesses with potential international buyers, market-entry opportunities and strategic trade relationships.',
   },
   {
     icon: 'gem',
     category: 'Precious Metals',
+    sector: 'precious-metals',
     title: 'Precious Metals & Market Access',
     text: 'Exploring responsible market-access opportunities with attention to supply-chain integrity, regulatory considerations and trusted commercial relationships.',
   },
   {
     icon: 'coins',
     category: 'Trade Finance',
+    sector: 'trade-finance',
     title: 'Trade Finance & Partnerships',
     text: 'Exploring potential relationships with financial institutions, investors and strategic partners to support structured and commercially viable trade.',
   },
@@ -161,14 +169,14 @@ function StageStepper() {
               aria-label="Previous stage"
               onClick={() => choose(active === 0 ? stages.length - 1 : active - 1)}
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
+              <Icon name="chevron-left" size={18} />
             </button>
             <button
               type="button"
               aria-label="Next stage"
               onClick={() => choose((active + 1) % stages.length)}
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
+              <Icon name="chevron-right" size={18} />
             </button>
           </div>
         </div>
@@ -177,7 +185,206 @@ function StageStepper() {
   );
 }
 
+const countBySector = (key) => activeProjects.filter((p) => p.sector === key).length;
+const sectorOf = (key) => projectSectors.find((s) => s.key === key) ?? { label: key, icon: 'target' };
+
+// Headline figures for the projects section.
+const projectStats = [
+  { value: activeProjects.length, label: 'Active projects' },
+  { value: new Set(activeProjects.map((p) => p.country)).size, label: 'Countries' },
+  { value: new Set(activeProjects.map((p) => p.sector)).size, label: 'Sectors' },
+];
+
+function ProjectCard({ project }) {
+  const sector = sectorOf(project.sector);
+  return (
+    <li className="project-card">
+      <div className="project-cover">
+        <span className="project-cover-icon" aria-hidden="true">
+          <Icon name={sector.icon} size={30} />
+        </span>
+        <span className="project-status">
+          <span className="project-status-dot" aria-hidden="true" />
+          {project.status}
+        </span>
+        <span className="project-cover-place">
+          <img src={`https://flagcdn.com/${project.code}.svg`} alt="" width="40" height="27" loading="lazy" />
+          {project.country}
+        </span>
+      </div>
+
+      <div className="project-body">
+        <span className="project-sector">{sector.label}</span>
+        <h3>{project.title}</h3>
+        <p>{project.summary}</p>
+
+        <dl className="project-meta">
+          <div>
+            <dt>Location</dt>
+            <dd>{project.country}</dd>
+          </div>
+          <div>
+            <dt>Sector</dt>
+            <dd>{sector.label}</dd>
+          </div>
+          <div>
+            <dt>Status</dt>
+            <dd>{project.status}</dd>
+          </div>
+        </dl>
+
+        <Link to="/contact" className="btn btn--dark project-cta" aria-label={`Request the project brief for ${project.title}`}>
+          Request project brief
+        </Link>
+      </div>
+    </li>
+  );
+}
+
+// Active projects with a search box and sector / country filters. The chosen
+// sector and country are kept in the address (?sector=energy&country=Namibia)
+// so a filtered list can be shared as a link.
+function ActiveProjects({ sector, country, onSector, onCountry, onClear }) {
+  const [query, setQuery] = useState('');
+  const countries = [...new Set(activeProjects.map((p) => p.country))].sort();
+  const q = query.trim().toLowerCase();
+  const shown = activeProjects.filter(
+    (p) =>
+      (sector === 'all' || p.sector === sector) &&
+      (country === 'all' || p.country === country) &&
+      (!q || [p.title, p.country, p.summary, sectorOf(p.sector).label].join(' ').toLowerCase().includes(q)),
+  );
+  const filtered = sector !== 'all' || country !== 'all' || q;
+
+  const clearAll = () => {
+    setQuery('');
+    onClear();
+  };
+
+  return (
+    <section className="section section--white projects-section" id="active-projects" aria-labelledby="active-projects-title">
+      <div className="container">
+        <div className="projects-head">
+          <div className="section-head">
+            <p className="eyebrow">Active Projects</p>
+            <h2 id="active-projects-title">Projects we are currently advancing</h2>
+            <p>
+              Explore opportunities by sector and country. Project briefs are
+              shared with qualified partners on request.
+            </p>
+          </div>
+
+          <dl className="projects-stats">
+            {projectStats.map((stat) => (
+              <div key={stat.label}>
+                <dt>{stat.label}</dt>
+                <dd data-count={stat.value}>{stat.value}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+
+        <div className="projects-toolbar">
+          <div className="projects-search">
+            <Icon name="search" size={18} />
+            <label htmlFor="project-search" className="visually-hidden">Search projects</label>
+            <input
+              id="project-search"
+              type="search"
+              placeholder="Search by project, country or sector"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+            />
+          </div>
+
+          <label className="projects-select">
+            <span className="visually-hidden">Filter by country</span>
+            <select value={country} onChange={(event) => onCountry(event.target.value)}>
+              <option value="all">All countries</option>
+              {countries.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </label>
+
+          <div className="projects-tabs" role="group" aria-label="Filter by sector">
+            <button type="button" className={sector === 'all' ? 'is-active' : undefined} aria-pressed={sector === 'all'} onClick={() => onSector('all')}>
+              All <span>{activeProjects.length}</span>
+            </button>
+            {projectSectors.map((s) => (
+              <button
+                type="button"
+                key={s.key}
+                className={sector === s.key ? 'is-active' : undefined}
+                aria-pressed={sector === s.key}
+                onClick={() => onSector(s.key)}
+              >
+                <Icon name={s.icon} size={16} />
+                {s.label} <span>{countBySector(s.key)}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="projects-result" aria-live="polite">
+          <p>
+            <strong>{shown.length}</strong> {shown.length === 1 ? 'project' : 'projects'}
+            {sector !== 'all' && <> in <strong>{sectorOf(sector).label}</strong></>}
+            {country !== 'all' && <> in <strong>{country}</strong></>}
+            {q && <> matching &ldquo;{query.trim()}&rdquo;</>}
+          </p>
+          {filtered && (
+            <button type="button" className="projects-clear" onClick={clearAll}>
+              Clear filters
+            </button>
+          )}
+        </div>
+
+        {shown.length ? (
+          <ul className="project-list">
+            {shown.map((project) => (
+              <ProjectCard key={project.id} project={project} />
+            ))}
+          </ul>
+        ) : (
+          <div className="project-empty">
+            <span className="project-empty-icon" aria-hidden="true">
+              <Icon name="globe" size={28} />
+            </span>
+            <h3>No active projects listed here yet</h3>
+            <p>
+              We are developing opportunities in this area. Tell us what you
+              are looking for and we will be in touch.
+            </p>
+            <div className="project-empty-actions">
+              <Link to="/contact" className="btn btn--dark">Discuss an opportunity</Link>
+              <button type="button" className="projects-clear" onClick={clearAll}>View all projects</button>
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 export default function Portfolio() {
+  const [params, setParams] = useSearchParams();
+  const sector = params.get('sector') ?? 'all';
+  const country = params.get('country') ?? 'all';
+
+  const setFilter = (name, value) => {
+    const next = new URLSearchParams(params);
+    if (value === 'all') next.delete(name);
+    else next.set(name, value);
+    setParams(next, { replace: true, preventScrollReset: true });
+  };
+
+  // Card button: show that sector's projects and bring the list into view.
+  const viewSector = (key) => {
+    setParams({ sector: key }, { replace: true, preventScrollReset: true });
+    scrollToTarget(document.getElementById('active-projects'), { offset: -90 });
+  };
+
   return (
     <>
       <PageHero
@@ -185,8 +392,8 @@ export default function Portfolio() {
         imageAlt="Africa map and an Alkebulan Global notebook on a meeting table"
         focus="center 55%"
         eyebrow="Our Work"
-        title="Connecting Opportunities. Building Global Partnerships."
-        intro="We explore strategic opportunities across key industries, bringing together African capabilities, international markets and relationships that can support sustainable commercial growth."
+        title="Projects & Engagements"
+        intro="Energy, mining, agriculture, manufacturing and trade work we are advancing with partners across Africa and the United States."
       />
 
       <section className="section section--white">
@@ -205,11 +412,10 @@ export default function Portfolio() {
         <div className="container">
           <div className="section-head">
             <p className="eyebrow">Our Areas of Engagement</p>
-            <h2>Where Strategy Meets Opportunity</h2>
+            <h2>Six sectors we work in</h2>
             <p>
-              Our work focuses on identifying opportunities, facilitating
-              meaningful connections and exploring partnerships across
-              sectors with potential for long-term value creation.
+              In each sector we look for credible partners, a real market,
+              and a clear route to execution.
             </p>
           </div>
 
@@ -236,18 +442,27 @@ export default function Portfolio() {
                 <h3>{project.title}</h3>
                 <p>{project.text}</p>
 
-                <Link
-                  to="/contact"
-                  className="text-link"
-                  aria-label={`Discuss ${project.title} with Alkebulan Global`}
+                <button
+                  type="button"
+                  className="text-link portfolio-view"
+                  onClick={() => viewSector(project.sector)}
+                  aria-label={`View active ${project.category} projects`}
                 >
-                  Discuss this opportunity
-                </Link>
+                  View active projects <span className="portfolio-count">{countBySector(project.sector)}</span>
+                </button>
               </article>
             ))}
           </div>
         </div>
       </section>
+
+      <ActiveProjects
+        sector={sector}
+        country={country}
+        onSector={(value) => setFilter('sector', value)}
+        onCountry={(value) => setFilter('country', value)}
+        onClear={() => setParams({}, { replace: true, preventScrollReset: true })}
+      />
 
       <PhotoBreak
         image="/images/photos/boardroom.jpg"
@@ -258,8 +473,8 @@ export default function Portfolio() {
       />
 
       <CtaBand
-        title="Let's Explore What's Possible."
-        text="Have a project, sourcing requirement or partnership opportunity? Connect with Alkebulan Global and let's explore how we can move it forward."
+        title="Have a project in mind?"
+        text="Tell us about your project, sourcing need, or partnership idea, and our team will follow up."
       />
     </>
   );

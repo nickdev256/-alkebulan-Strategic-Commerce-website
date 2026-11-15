@@ -1,32 +1,75 @@
 /* ---------- Brand pillars strip ---------- */
 
 .pillars {
-  background: var(--navy-900);
+  --ribbon-bg: var(--navy-900);
+  padding: 22px 0;
   border-top: 1px solid rgba(228, 199, 127, 0.15);
   border-bottom: 1px solid rgba(228, 199, 127, 0.15);
+  background: var(--navy-900);
 }
 
-.pillars .container {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  row-gap: 10px;
-  padding-top: 24px;
-  padding-bottom: 24px;
-}
-
-.pillars span {
-  padding: 0 clamp(12px, 2.4vw, 36px);
+.pillar-word {
   color: var(--gold-light);
-  font-size: clamp(0.8rem, 1.3vw, 1rem);
+  font-size: clamp(0.85rem, 1.3vw, 1rem);
   letter-spacing: 0.2em;
-  white-space: nowrap;
   text-transform: uppercase;
 }
 
-/* Gold divider between pillars */
-.pillars span + span {
-  border-left: 1px solid rgba(228, 199, 127, 0.4);
+/* Small gold diamond between words */
+.pillar-mark {
+  width: 7px;
+  height: 7px;
+  margin: 0 clamp(22px, 3vw, 44px);
+  background: var(--gold);
+  transform: rotate(45deg);
+}
+
+/* ---------- Where we work ribbon ---------- */
+
+.places {
+  --ribbon-bg: var(--white);
+  padding: 40px 0 44px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: var(--white);
+}
+
+.places-head {
+  margin-bottom: 18px;
+  text-align: center;
+}
+
+.places-head .eyebrow {
+  justify-content: center;
+}
+
+.place {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0 clamp(24px, 3vw, 44px);
+  color: var(--navy-900);
+  font-family: var(--font-serif);
+  font-size: clamp(1.3rem, 2.2vw, 1.8rem);
+  font-weight: 700;
+}
+
+.place img {
+  width: 40px;
+  height: 27px;
+  border-radius: 4px;
+  object-fit: cover;
+  box-shadow: 0 0 0 1px rgba(11, 26, 46, 0.12), 0 6px 14px -8px rgba(11, 26, 46, 0.5);
+}
+
+.place-globe {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--navy-900);
+  color: var(--gold-light);
 }
 
 /* ---------- Sector tiles (titles only; full text on Core Sectors) ---------- */
@@ -457,7 +500,6 @@
   padding: 44px 40px;
   border-radius: 20px;
   background:
-    radial-gradient(circle at 100% 0%, rgba(201, 162, 74, 0.25), transparent 55%),
     var(--navy-900);
   color: rgba(255, 255, 255, 0.78);
   box-shadow: var(--shadow);

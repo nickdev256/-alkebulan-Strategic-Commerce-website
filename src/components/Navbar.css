@@ -241,7 +241,6 @@
   border: 1px solid rgba(228, 199, 127, 0.2);
   border-radius: 18px;
   background:
-    radial-gradient(circle at 100% 0%, rgba(201, 162, 74, 0.18), transparent 55%),
     var(--navy-900);
   box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.75);
 }
@@ -466,7 +465,6 @@
     overflow-y: auto;
     overscroll-behavior: contain;
     background:
-      radial-gradient(circle at 100% 0%, rgba(201, 162, 74, 0.22), transparent 45%),
       var(--navy-950);
     border-left: 1px solid rgba(228, 199, 127, 0.18);
     box-shadow: -30px 0 60px -20px rgba(0, 0, 0, 0.6);

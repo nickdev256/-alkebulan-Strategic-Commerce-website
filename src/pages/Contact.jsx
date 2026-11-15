@@ -3,11 +3,13 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import PageHero from '../components/PageHero.jsx';
 import Icon from '../components/Icon.jsx';
+import PhoneField from '../components/PhoneField.jsx';
 import {
   contactEmail as email,
   contactPhone as phone,
   contactWhatsApp as whatsapp,
   sectors as coreSectors,
+  offices,
 } from '../content.js';
 import './Contact.css';
 
@@ -38,13 +40,6 @@ const headquarters = {
   query: '1 World Trade Center, Suite 8500, New York, NY 10007',
 };
 
-const offices = [
-  { country: 'United States', code: 'us', role: 'Headquarters · New York' },
-  { country: 'Uganda', code: 'ug', role: 'Satellite office' },
-  { country: 'Namibia', code: 'na', role: 'Satellite office' },
-  { country: 'Mozambique', code: 'mz', role: 'Satellite office' },
-  { country: 'Nigeria', code: 'ng', role: 'Satellite office' },
-];
 
 const channels = [
   {
@@ -62,7 +57,7 @@ const channels = [
     href: `tel:${phone.replace(/[^+\d]/g, '')}`,
   },
   {
-    icon: 'chat',
+    icon: 'whatsapp',
     label: 'Message on WhatsApp',
     value: whatsapp,
     action: 'Open WhatsApp',
@@ -155,9 +150,11 @@ export default function Contact() {
       setForm({ ...emptyForm });
       setStatus('sent');
     } catch (err) {
+      // A network failure ("Failed to fetch") gets a plain-English message.
       setError(
-        err.message ||
-        'Unable to connect to our server. Please try again later.'
+        err instanceof TypeError || !err.message
+          ? 'We could not reach our server just now. Please try again in a moment.'
+          : err.message
       );
       setStatus('error');
     }
@@ -173,7 +170,7 @@ export default function Contact() {
         focus="center 24%"
         eyebrow="Engage Alkebulan Global"
         title="Let's Start a Conversation"
-        intro="Tell us about your business, sourcing needs, project or potential strategic partnership. We welcome conversations that create meaningful opportunities across markets."
+        intro="Tell us about your business, sourcing needs, project or potential partnership, and our team will follow up."
       />
 
       {/* Direct contact channels */}
@@ -241,7 +238,7 @@ export default function Contact() {
                   id="name"
                   name="name"
                   autoComplete="name"
-                  placeholder="Jane Doe"
+                  placeholder="Mark"
                   value={form.name}
                   onChange={handleChange}
                   maxLength={120}
@@ -250,13 +247,13 @@ export default function Contact() {
               </div>
 
               <div className="field">
-                <label htmlFor="email">Work email</label>
+                <label htmlFor="email">Email</label>
                 <input
                   id="email"
                   name="email"
                   type="email"
                   autoComplete="email"
-                  placeholder="jane@company.com"
+                  placeholder="mark@company.com"
                   value={form.email}
                   onChange={handleChange}
                   maxLength={254}
@@ -270,15 +267,10 @@ export default function Contact() {
                 <label htmlFor="phone">
                   Phone <span className="optional">Optional</span>
                 </label>
-                <input
+                <PhoneField
                   id="phone"
-                  name="phone"
-                  type="tel"
-                  autoComplete="tel"
-                  placeholder="+1 (555) 000-0000"
                   value={form.phone}
-                  onChange={handleChange}
-                  maxLength={50}
+                  onChange={(phone) => setForm((previous) => ({ ...previous, phone }))}
                 />
               </div>
 

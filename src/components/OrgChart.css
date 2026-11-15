@@ -189,7 +189,6 @@
   padding: 26px 28px;
   border-radius: 18px;
   background:
-    radial-gradient(circle at 0% 0%, rgba(201, 162, 74, 0.18), transparent 55%),
     var(--navy-900);
   box-shadow: var(--shadow);
   color: rgba(255, 255, 255, 0.75);
@@ -308,7 +307,6 @@
 
 .org-unit--featured .org-unit-head {
   background:
-    radial-gradient(circle at 15% 50%, rgba(201, 162, 74, 0.25), transparent 50%),
     var(--navy-900);
 }
 
@@ -420,7 +418,7 @@
 
 .org-leads-title {
   margin-bottom: 14px;
-  color: var(--gold-dark);
+  color: var(--navy-900);
   font-family: var(--font-sans);
   font-size: 0.74rem;
   font-weight: 700;
@@ -456,7 +454,7 @@
 }
 
 .org-leads strong {
-  color: var(--navy-900);
+  color: #bb9135;
   font-family: var(--font-serif);
   font-size: 1.05rem;
   line-height: 1.25;
@@ -500,7 +498,6 @@
   padding: 28px 32px 32px;
   border-radius: 18px;
   background:
-    radial-gradient(circle at 50% 0%, rgba(201, 162, 74, 0.2), transparent 60%),
     var(--navy-900);
   box-shadow: var(--shadow);
 }
@@ -892,4 +889,109 @@
   .org-dialog-text {
     padding: 34px 36px;
   }
+}
+
+/* ---------- Country partners (under the chart) ---------- */
+
+.country-partners {
+  margin-top: 72px;
+  text-align: center;
+}
+
+.country-partners-head {
+  margin-bottom: 28px;
+}
+
+.country-partners-head h3 {
+  font-size: clamp(1.5rem, 2.8vw, 2rem);
+}
+
+.country-partners-list {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.country-partners-list li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 22px 12px 20px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--white);
+  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.country-partners-list li:hover {
+  transform: translateY(-4px);
+  border-color: var(--gold);
+  box-shadow: var(--shadow);
+}
+
+.country-partners-list img {
+  width: 72px;
+  height: 48px;
+  margin-bottom: 8px;
+  border-radius: 6px;
+  object-fit: cover;
+  box-shadow: 0 0 0 1px rgba(11, 26, 46, 0.12), 0 6px 14px -8px rgba(11, 26, 46, 0.5);
+}
+
+.country-partners-name {
+  color: var(--navy-900);
+  font-family: var(--font-serif);
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.country-partners-role {
+  color: var(--gold-dark);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 1000px) {
+  .country-partners-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .country-partners {
+    margin-top: 48px;
+  }
+
+  .country-partners-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+}
+
+@media (hover: none) {
+  .country-partners-list li:hover {
+    transform: none;
+  }
+}
+
+/* People without a photo in the chart: centred names and titles */
+.org-person {
+  justify-content: center;
+  text-align: center;
+}
+
+.org-person .org-remit {
+  justify-content: center;
+}
+
+.org-person--lg {
+  padding: 30px 40px;
 }

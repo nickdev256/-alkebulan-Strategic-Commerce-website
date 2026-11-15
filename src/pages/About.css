@@ -177,7 +177,6 @@
   padding: 36px;
   border-radius: 20px;
   background:
-    radial-gradient(circle at 100% 0%, rgba(201, 162, 74, 0.2), transparent 55%),
     var(--navy-900);
   color: rgba(255, 255, 255, 0.75);
 }
@@ -317,7 +316,6 @@
   padding: 28px;
   border-radius: 24px;
   background:
-    radial-gradient(circle at 50% 30%, rgba(201, 162, 74, 0.25), transparent 65%),
     var(--navy-900);
   box-shadow: var(--shadow);
 }
@@ -334,6 +332,41 @@
   color: var(--gold-dark) !important;
   font-weight: 700;
   letter-spacing: 0.04em;
+}
+
+/* Leader's social media icons, under her bio */
+.leader-social {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 28px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.leader-social a,
+.leader-social li > span {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--navy-900);
+  border-radius: 50%;
+  color: var(--navy-900);
+  transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease, transform 0.25s ease;
+}
+
+.leader-social a:hover,
+.leader-social li > span:hover {
+  border-color: var(--gold);
+  background: var(--gold);
+  color: var(--navy-950);
+  transform: translateY(-3px);
+}
+
+.leader-social a:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
 }
 
 /* ---------- Who We Are: reach ---------- */
@@ -568,30 +601,25 @@
   list-style: none;
 }
 
-.team-card button {
+.team-card {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 200px) minmax(0, 1fr);
-  width: 100%;
-  height: 100%;
   overflow: hidden;
-  padding: 0;
   border: 1px solid var(--line);
   border-radius: 18px;
   background: var(--white);
   color: var(--ink);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
   transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
 }
 
-.team-card button:hover {
+.team-card:hover {
   border-color: var(--gold);
   box-shadow: var(--shadow);
   transform: translateY(-4px);
 }
 
-.team-card button:focus-visible {
+.team-card:has(.team-card-link:focus-visible) {
   outline: 2px solid var(--gold);
   outline-offset: 3px;
 }
@@ -610,7 +638,7 @@
   transition: transform 0.5s ease;
 }
 
-.team-card button:hover .team-card-photo img {
+.team-card:hover .team-card-photo img {
   transform: scale(1.06);
 }
 
@@ -644,15 +672,59 @@
 }
 
 .team-card-link {
+  align-self: flex-start;
   margin-top: 10px;
+  padding: 0;
+  border: 0;
+  background: none;
   color: var(--gold-dark);
+  font: inherit;
   font-size: 0.9rem;
   font-weight: 700;
+  cursor: pointer;
   transition: color 0.2s ease;
 }
 
-.team-card button:hover .team-card-link {
+/* Stretches the button's click area over the whole card */
+.team-card-link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.team-card-link:focus-visible {
+  outline: none;
+}
+
+.team-card:hover .team-card-link {
   color: var(--gold-hover);
+}
+
+/* Email icon, just below "View profile" (above the card's click layer) */
+.team-card-email {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  align-self: flex-start;
+  width: 40px;
+  height: 40px;
+  margin-top: 8px;
+  border: 1px solid var(--navy-900);
+  border-radius: 50%;
+  color: var(--navy-900);
+  transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease;
+}
+
+.team-card-email:hover {
+  border-color: var(--gold);
+  background: var(--gold);
+  color: var(--navy-950);
+}
+
+.team-card-email:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
 }
 
 /* Teaser on Company Snapshot */
@@ -706,7 +778,7 @@
 }
 
 @media (max-width: 560px) {
-  .team-card button {
+  .team-card {
     grid-template-columns: minmax(0, 1fr);
   }
 
@@ -729,7 +801,7 @@
 }
 
 @media (hover: none) {
-  .team-card button:hover {
+  .team-card:hover {
     transform: none;
   }
 }
@@ -867,5 +939,18 @@
 @media (hover: none) {
   .partner-org:hover {
     transform: none;
+  }
+}
+
+/* Small phones: smaller team faces so the row fits */
+@media (max-width: 420px) {
+  .team-teaser-faces img {
+    width: 42px;
+    height: 42px;
+    border-width: 2px;
+  }
+
+  .team-teaser-faces img + img {
+    margin-left: -12px;
   }
 }

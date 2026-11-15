@@ -1,19 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
+import Icon from './Icon.jsx';
 import { useLocation } from 'react-router-dom';
+import { scrollToTarget } from '../lib/smoothScroll.js';
 import './Interactions.css';
-
-// Cards that get a soft gold glow following the cursor.
-const SPOTLIGHT = [
-  '.card',
-  '.channel-card',
-  '.office-card',
-  '.sector-tile',
-  '.area-item',
-  '.org-unit',
-  '.org-person',
-  '.partner-types li',
-  '.hq-card',
-].join(',');
 
 const prefersReducedMotion = () =>
   window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -22,8 +11,6 @@ const prefersReducedMotion = () =>
  * Site-wide interactive layer:
  * - gold reading-progress bar
  * - back-to-top button
- * - cursor spotlight on cards (mouse / trackpad only)
- * - gentle parallax on banner and photo-strip images
  * - numbers that count up when they come into view ([data-count])
  */
 export default function Interactions() {
@@ -31,9 +18,8 @@ export default function Interactions() {
   const barRef = useRef(null);
   const [showTop, setShowTop] = useState(false);
 
-  // Scroll: progress bar, back-to-top, parallax
+  // Scroll: progress bar and back-to-top (scroll animations live in Motion.jsx)
   useEffect(() => {
-    const reduce = prefersReducedMotion();
     let frame = 0;
 
     const update = () => {
@@ -43,18 +29,6 @@ export default function Interactions() {
       const progress = max > 0 ? window.scrollY / max : 0;
       if (barRef.current) barRef.current.style.transform = `scaleX(${progress})`;
       setShowTop(window.scrollY > 700);
-
-      if (reduce) return;
-      const vh = window.innerHeight;
-
-      doc.style.setProperty('--hero-shift', `${Math.min(window.scrollY, 900) * 0.28}px`);
-
-      document.querySelectorAll('.photo-break').forEach((el) => {
-        const rect = el.getBoundingClientRect();
-        if (rect.bottom < 0 || rect.top > vh) return;
-        const offset = (rect.top + rect.height / 2 - vh / 2) / vh;
-        el.style.setProperty('--pb-shift', `${(offset * -0.16 * rect.height).toFixed(1)}px`);
-      });
     };
 
     const onScroll = () => {
@@ -70,22 +44,6 @@ export default function Interactions() {
       cancelAnimationFrame(frame);
     };
   }, [pathname]);
-
-  // Cursor spotlight on cards (fine pointers only)
-  useEffect(() => {
-    if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return undefined;
-
-    const onMove = (event) => {
-      const card = event.target.closest?.(SPOTLIGHT);
-      if (!card) return;
-      const rect = card.getBoundingClientRect();
-      card.style.setProperty('--mx', `${event.clientX - rect.left}px`);
-      card.style.setProperty('--my', `${event.clientY - rect.top}px`);
-    };
-
-    document.addEventListener('pointermove', onMove, { passive: true });
-    return () => document.removeEventListener('pointermove', onMove);
-  }, []);
 
   // Count-up numbers
   useEffect(() => {
@@ -135,13 +93,9 @@ export default function Interactions() {
         className={`to-top${showTop ? ' is-shown' : ''}`}
         aria-label="Back to top"
         tabIndex={showTop ? 0 : -1}
-        onClick={() =>
-          window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? 'auto' : 'smooth' })
-        }
+        onClick={() => scrollToTarget(0)}
       >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="m6 15 6-6 6 6" />
-        </svg>
+        <Icon name="chevron-up" size={20} />
       </button>
     </>
   );

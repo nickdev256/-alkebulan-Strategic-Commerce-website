@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import PageHero from '../components/PageHero.jsx';
 import Icon from '../components/Icon.jsx';
+import { scrollToTarget } from '../lib/smoothScroll.js';
 import { contactEmail as email, contactPhone as phone } from '../content.js';
 import './Privacy.css';
 
@@ -155,8 +156,8 @@ const sections = [
     title: 'International transfers',
     body: (
       <p>
-        Our headquarters is in the United States and we have offices in Uganda,
-        Namibia, Mozambique, and Nigeria. Your information is held in the United
+        Our headquarters is in the United States and we have offices in
+        Mozambique, Nigeria, Uganda, Zambia, and Namibia. Your information is held in the United
         States and may be shared with one of these offices if they are handling
         your inquiry.
       </p>
@@ -263,13 +264,14 @@ export default function Privacy() {
     event.preventDefault();
     const target = document.getElementById(id);
     if (!target) return;
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    target.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+    // Leave room for the header (the section's scroll-margin-top).
+    const margin = parseFloat(getComputedStyle(target).scrollMarginTop) || 0;
+    scrollToTarget(target, { offset: -margin });
     history.replaceState(null, '', `#${id}`);
   }
 
   const contents = (
-    <ol className="privacy-toc-list">
+    <ol className="privacy-toc-list" data-lenis-prevent>
       {sections.map((section, index) => (
         <li key={section.id}>
           <a
