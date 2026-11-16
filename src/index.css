@@ -639,3 +639,8 @@ main:focus {
     scroll-behavior: auto !important;
   }
 }
+
+/* Inner-page blocks swing in from the sides; never let that cause sideways scroll */
+.page-transition {
+  overflow-x: clip;
+}

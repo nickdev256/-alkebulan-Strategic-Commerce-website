@@ -873,3 +873,9 @@
     transform: none;
   }
 }
+
+/* Pieces fly in from the sides on entrance; never let them cause sideways scroll */
+.projects-section,
+.section:has(.portfolio-note) {
+  overflow-x: clip;
+}

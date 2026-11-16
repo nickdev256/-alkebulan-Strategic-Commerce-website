@@ -1,4 +1,6 @@
 .site-footer {
+  position: relative;
+  overflow: hidden;
   padding-top: 80px;
   background: var(--navy-950);
   color: rgba(255, 255, 255, 0.62);
@@ -181,12 +183,6 @@
   }
 }
 
-.footer-slogan {
-  color: var(--gold-light);
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-}
-
 /* ---------- Stay connected / subscribe (small, bottom right) ---------- */
 
 .footer-subscribe {
@@ -325,5 +321,102 @@
 
   .subscribe-field input {
     min-height: 44px;
+  }
+}
+
+/* ---------- Developer credit (bottom right, where the slogan was) ---------- */
+
+.footer-credit {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* Keep the credit clear of the floating back-to-top button */
+@media (min-width: 521px) {
+  .footer-bottom {
+    padding-right: 64px;
+  }
+}
+
+.footer-credit a {
+  color: var(--gold);
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.footer-credit a {
+  position: relative;
+}
+
+/* A gold underline draws in from the left on hover */
+.footer-credit a::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -3px;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.35s ease;
+}
+
+.footer-credit a:hover {
+  color: var(--gold-light);
+}
+
+.footer-credit a:hover::after {
+  transform: scaleX(1);
+}
+
+.footer-credit a:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+@media (max-width: 700px) {
+  .footer-credit a {
+    display: inline-block;
+    padding: 12px 2px;
+  }
+
+  .footer-credit a::after {
+    bottom: 9px;
+  }
+}
+
+/* ---------- Footer motion helpers ---------- */
+
+.footer-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold) 20%, var(--gold-light) 50%, var(--gold) 80%, transparent);
+  box-shadow: 0 0 18px rgba(201, 162, 74, 0.55);
+  pointer-events: none;
+}
+
+/* The developer's name shimmers gold, gently and on a loop */
+@media (prefers-reduced-motion: no-preference) {
+  .footer-credit a {
+    background: linear-gradient(110deg, var(--gold) 35%, #fff4d6 50%, var(--gold) 65%);
+    background-size: 250% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: credit-shimmer 3.5s linear infinite;
+  }
+
+  .footer-credit a::after {
+    background: var(--gold);
+  }
+
+  @keyframes credit-shimmer {
+    from { background-position: 100% 0; }
+    to { background-position: -150% 0; }
   }
 }

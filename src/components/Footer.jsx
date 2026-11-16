@@ -111,6 +111,8 @@ export default function Footer() {
 
   return (
     <footer className="site-footer">
+      {/* Gold line that sweeps across the top of the footer */}
+      <span className="footer-line" aria-hidden="true" />
       <div className="container">
         <div className="footer-grid">
 
@@ -338,8 +340,15 @@ export default function Footer() {
             </Link>
           </p>
 
-          <p className="footer-slogan">
-            Where Excellence Meets Opportunity™
+          <p className="footer-credit">
+            Website developed by{' '}
+            <a
+              href="https://www.ethtechsolutions.com"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Eth Tech Solutions
+            </a>
           </p>
         </div>
       </div>
