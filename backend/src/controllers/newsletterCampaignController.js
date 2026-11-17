@@ -1,4 +1,3 @@
-
 import { supabase } from '../config/supabase.js';
 import { sendCampaignEmail } from '../services/emailService.js';
 import { buildCampaignEmail } from '../services/newsletterTemplate.js';
@@ -266,9 +265,7 @@ const createCampaignEmail = (
     ...campaign,
     unsubscribeUrl,
   });
-};
-
-// ==========================================
+};// ==========================================
 // SUBSCRIBER MANAGEMENT
 // ==========================================
 
@@ -537,9 +534,7 @@ export const createNewsletterCampaign = async (
       'Failed to create the newsletter campaign.'
     );
   }
-};
-
-export const updateNewsletterCampaign = async (
+};export const updateNewsletterCampaign = async (
   req,
   res
 ) => {
@@ -647,15 +642,21 @@ export const publishNewsletterCampaign = async (
   res
 ) => {
   try {
-    const campaign = await getCampaignById(
-      req.params.id
-    );
+    // Validate email configuration before publishing.
+    assertSendingConfigured();
+
+    const campaignId = req.params.id;
+    const campaign = await getCampaignById(campaignId);
 
     if (!campaign) {
+      return sendError(res, 404, 'Campaign not found.');
+    }
+
+    if (campaign.status !== 'draft' || campaign.is_published) {
       return sendError(
         res,
-        404,
-        'Campaign not found.'
+        409,
+        'This campaign has already been published or is being processed.'
       );
     }
 
@@ -670,76 +671,111 @@ export const publishNewsletterCampaign = async (
       );
     }
 
-    if (campaign.status !== 'draft') {
+    // Retrieve all active and subscribed users.
+    const subscribers = await getAllSendableSubscribers();
+
+    if (!subscribers.length) {
       return sendError(
         res,
-        409,
-        'Only draft campaigns can be published.'
+        400,
+        'There are no active subscribers to receive this newsletter.'
       );
-    }
-
-    if (campaign.is_published) {
-      return res.json({
-        success: true,
-        message: 'This campaign is already published.',
-        campaign,
-      });
     }
 
     const publishedAt = new Date().toISOString();
 
-    const { data, error } = await supabase
+    // Publish and claim the campaign atomically.
+    const { data: claimed, error: publishError } = await supabase
       .from('newsletter_campaigns')
       .update({
         is_published: true,
         published_at: publishedAt,
         published_by: getAdminId(req),
+        status: 'sending',
+        recipient_count: subscribers.length,
+        sent_count: 0,
+        failed_count: 0,
+        sent_by: getAdminId(req),
+        last_error: null,
         updated_at: publishedAt,
       })
-      .eq('id', req.params.id)
+      .eq('id', campaignId)
       .eq('status', 'draft')
-      .select()
+      .select('*')
       .maybeSingle();
 
-    if (error) throw error;
+    if (publishError) throw publishError;
 
-    if (!data) {
+    if (!claimed) {
       return sendError(
         res,
         409,
-        'The campaign changed while it was being published. Refresh and try again.'
+        'The campaign has already been published or another request is processing it.'
       );
     }
 
-    return res.json({
-      success: true,
-      message: 'Campaign published successfully.',
-      campaign: data,
-    });
-  } catch (error) {
-    console.error(
-      'Publish newsletter campaign error:',
-      error
+    // Initialize campaign tracking.
+    const trackingInitialized = await updateCampaignTracking(
+      campaignId,
+      {
+        recipient_count: subscribers.length,
+        sent_count: 0,
+        failed_count: 0,
+        sent_by: getAdminId(req),
+        last_error: null,
+      }
     );
 
-    if (
-      error?.code === '42703' ||
-      /is_published|published_at|published_by/i.test(
-        error?.message || ''
-      )
-    ) {
+    if (!trackingInitialized) {
+      await updateCampaignTracking(campaignId, {
+        status: 'failed',
+        last_error: 'Campaign tracking could not be initialized.',
+      });
+
       return sendError(
         res,
         500,
-        'Publishing fields are missing from newsletter_campaigns. Apply the newsletter publishing SQL migration, then try again.'
+        'The campaign was published, but tracking could not be initialized. No emails were sent.'
       );
     }
 
-    return sendError(
-      res,
-      500,
-      'Failed to publish the newsletter campaign.'
-    );
+    // Respond immediately while delivery continues.
+    res.status(202).json({
+      success: true,
+      message: `Newsletter published. Sending to ${subscribers.length} subscriber(s).`,
+      recipientCount: subscribers.length,
+      campaign: claimed,
+    });
+
+    // Reuse the existing delivery function.
+    deliverCampaign(claimed, subscribers).catch(async (error) => {
+      console.error(
+        `Campaign ${campaignId} delivery crashed:`,
+        error
+      );
+
+      try {
+        await updateCampaignTracking(campaignId, {
+          status: 'failed',
+          last_error: error?.message || 'Campaign delivery crashed.',
+        });
+      } catch (trackingError) {
+        console.error(
+          'Could not record campaign delivery failure:',
+          trackingError
+        );
+      }
+    });
+  } catch (error) {
+    console.error('Publish and send newsletter error:', error);
+
+    if (!res.headersSent) {
+      return sendError(
+        res,
+        500,
+        error.message || 'Failed to publish and send the newsletter.'
+      );
+    }
   }
 };
 
@@ -798,9 +834,7 @@ export const deleteNewsletterCampaign = async (
       'Failed to delete the newsletter campaign.'
     );
   }
-};
-
-// ==========================================
+};// ==========================================
 // INDIVIDUAL DELIVERY TRACKING
 // ==========================================
 
@@ -868,9 +902,8 @@ const deliverCampaign = async (
 
       deliveryId = delivery.id;
 
-      // IMPORTANT:
       // The database only permits pending, sent, failed.
-      // Do not use "sending" here.
+      // Do not use "sending" for individual delivery records.
 
       await updateDeliveryRecord(deliveryId, {
         status: 'pending',
@@ -892,7 +925,14 @@ const deliverCampaign = async (
         campaign,
         unsubscribeUrl
       );
-
+console.log('CAMPAIGN EMAIL DIAGNOSTIC:', {
+  campaignId: campaign.id,
+  subject: email?.subject,
+  hasHtml: Boolean(email?.html),
+  htmlLength: email?.html?.length,
+  hasText: Boolean(email?.text),
+  returnedKeys: Object.keys(email || {}),
+});
       if (!email?.html || !email?.subject) {
         throw new Error(
           'The campaign template did not return a valid email.'
@@ -1000,9 +1040,7 @@ const deliverCampaign = async (
   console.log(
     `Campaign ${campaign.id} finished: ${sentCount} accepted by Resend, ${failedCount} failed.`
   );
-};
-
-// ==========================================
+};// ==========================================
 // TEST EMAIL
 // ==========================================
 
