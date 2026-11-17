@@ -1,3 +1,4 @@
+import { photoSrcSet } from '../lib/images.js';
 import './PhotoBreak.css';
 
 // Wide, edge-to-edge photo strip with a short caption, placed between
@@ -7,6 +8,8 @@ export default function PhotoBreak({ image, alt, eyebrow, title, focus = 'center
     <section className="photo-break">
       <img
         src={image}
+        srcSet={photoSrcSet(image)}
+        sizes="100vw"
         alt={alt}
         width="1100"
         height="1560"

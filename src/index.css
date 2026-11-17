@@ -49,6 +49,8 @@
 }
 
 html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
   scroll-behavior: smooth;
   scroll-padding-top: 90px;
 }
@@ -86,6 +88,13 @@ h3 {
   line-height: 1.2;
   letter-spacing: -0.01em;
   color: var(--navy-900);
+  /* Even line lengths in headings, no single-word last lines in paragraphs */
+  text-wrap: balance;
+}
+
+p,
+li {
+  text-wrap: pretty;
 }
 
 :focus-visible {
@@ -461,6 +470,11 @@ main:focus {
   margin-bottom: 16px;
 }
 
+/* Paragraphs on navy sections: light grey so they read clearly */
+.section--dark .prose p {
+  color: #d9dee6;
+}
+
 /* ---------- Scroll animations (classes added by ScrollToTop.jsx) ---------- */
 
 .reveal {
@@ -624,4 +638,9 @@ main:focus {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* Inner-page blocks swing in from the sides; never let that cause sideways scroll */
+.page-transition {
+  overflow-x: clip;
 }

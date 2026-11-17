@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useRef } from 'react';
+import { photoSrcSet } from '../lib/images.js';
 import './Hero.css';
 
 // Number of stacked gold discs that form the medallion's rim.
@@ -39,6 +40,8 @@ export default function Hero() {
           <img
             key={slide.src}
             src={slide.src}
+            srcSet={photoSrcSet(slide.src)}
+            sizes="100vw"
             alt=""
             width={slide.width}
             height={slide.height}

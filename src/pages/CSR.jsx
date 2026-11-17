@@ -22,6 +22,7 @@ const governance = [
 
 const initiatives = [
   { icon: 'graduation', title: 'Vocational Training & Skills Development', text: 'Support skills development aligned with employment, entrepreneurship, and relevant industry requirements.' },
+  { icon: 'target', title: 'Entrepreneurship', text: 'Encourage entrepreneurship by helping start-ups and small businesses access mentorship, markets, partners, and finance.' },
   { icon: 'users', title: 'Women in Enterprise', text: 'Encourage opportunities for women-owned enterprises through business development, training, and access to commercial networks.' },
   { icon: 'handshake', title: 'Community Benefit', text: 'Promote consideration of local employment, community engagement, and long-term social value in relevant projects.' },
   { icon: 'shield', title: 'Responsible Supply Chains', text: 'Encourage transparency, appropriate due diligence, responsible sourcing, and respect for applicable standards.' },
@@ -115,7 +116,7 @@ export default function CSR() {
             </p>
           </div>
 
-          <div className="grid grid--3">
+          <div className="csr-focus">
             {initiatives.map((item) => (
               <article className="card" key={item.title}>
                 <div className="icon-badge">

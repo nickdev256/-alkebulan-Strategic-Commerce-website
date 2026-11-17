@@ -275,3 +275,39 @@ export async function sendNewsletterWelcomeEmail(email) {
     acknowledgementSent,
   };
 }
+// ==========================================
+// NEWSLETTER CAMPAIGN EMAILS
+// ==========================================
+
+export async function sendCampaignEmail({ to, subject, html }) {
+  if (!process.env.RESEND_API_KEY) {
+    throw new Error('Resend API key is missing.');
+  }
+
+  if (!process.env.EMAIL_FROM) {
+    throw new Error('EMAIL_FROM is missing.');
+  }
+
+  if (!to || !subject || !html) {
+    throw new Error('Recipient, subject and email content are required.');
+  }
+
+  const recipients = Array.isArray(to) ? to : [to];
+
+  const result = await resend.emails.send({
+    from: process.env.EMAIL_FROM,
+    to: recipients,
+    subject,
+    html,
+  });
+
+  if (result.error) {
+    throw new Error(`Campaign email failed: ${result.error.message}`);
+  }
+
+  return {
+    success: true,
+    id: result.data?.id || null,
+  };
+}
+

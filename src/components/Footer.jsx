@@ -9,6 +9,7 @@ import {
   contactPhone as phone,
   contactWhatsApp as whatsapp,
   socialLinks,
+  offices,
 } from '../content.js';
 
 import Icon from './Icon.jsx';
@@ -17,13 +18,6 @@ import './Footer.css';
 
 const expertise = subPages('Expertise');
 
-const offices = [
-  ['United States', 'us'],
-  ['Uganda', 'ug'],
-  ['Namibia', 'na'],
-  ['Mozambique', 'mz'],
-  ['Nigeria', 'ng'],
-];
 
 const directions =
   'https://www.google.com/maps/search/?api=1&query=' +
@@ -117,6 +111,8 @@ export default function Footer() {
 
   return (
     <footer className="site-footer">
+      {/* Gold line that sweeps across the top of the footer */}
+      <span className="footer-line" aria-hidden="true" />
       <div className="container">
         <div className="footer-grid">
 
@@ -145,7 +141,7 @@ export default function Footer() {
             </p>
 
             <ul className="footer-flags" aria-label="Our offices">
-              {offices.map(([country, code]) => (
+              {offices.map(({ country, code }) => (
                 <li key={code} title={country}>
                   <img
                     src={`https://flagcdn.com/${code}.svg`}
@@ -225,7 +221,7 @@ export default function Footer() {
               target="_blank"
               rel="noopener noreferrer"
             >
-              <Icon name="chat" size={18} />
+              <Icon name="whatsapp" size={18} />
               <span>
                 {whatsapp}
                 <small>WhatsApp</small>
@@ -254,8 +250,8 @@ export default function Footer() {
             </a>
 
             <p className="footer-offices">
-              Satellite offices in Uganda, Namibia, Mozambique,
-              and Nigeria.
+              Satellite offices in Mozambique, Nigeria, Uganda,
+              Zambia, and Namibia.
             </p>
           </div>
 
@@ -344,8 +340,15 @@ export default function Footer() {
             </Link>
           </p>
 
-          <p className="footer-slogan">
-            Where Excellence Meets Opportunity™
+          <p className="footer-credit">
+            Website developed by{' '}
+            <a
+              href="https://www.ethtechsolutions.com"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Eth Tech Solutions
+            </a>
           </p>
         </div>
       </div>

@@ -59,15 +59,17 @@
 
     <meta
       property="og:image"
-      content="https://alkebulan-global.com/images/alkebulan-global-logo.jpg"
+      content="https://alkebulan-global.com/images/og-image.jpg"
     />
 
     <meta
       property="og:image:alt"
-      content="Official Alkebulan Global LLC logo - Global Partners. Real Impact."
+      content="Alkebulan Global boardroom with a map of Africa and the company emblem"
     />
 
     <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
     <meta property="og:locale" content="en_US" />
 
     <!-- Twitter / X -->
@@ -85,12 +87,12 @@
 
     <meta
       name="twitter:image"
-      content="https://alkebulan-global.com/images/alkebulan-global-logo.jpg"
+      content="https://alkebulan-global.com/images/og-image.jpg"
     />
 
     <meta
       name="twitter:image:alt"
-      content="Official Alkebulan Global LLC company logo"
+      content="Alkebulan Global boardroom with a map of Africa and the company emblem"
     />
 
     <!-- Organization Structured Data -->
@@ -109,13 +111,28 @@
         "image": "https://alkebulan-global.com/images/alkebulan-global-logo.jpg",
         "slogan": "Global Partners. Real Impact.",
         "description": "Alkebulan Global LLC is a New York-based international strategic advisory, market access and business development firm connecting Africa, the United States, the Caribbean and the global African Diaspora. Founded by Ambassador Dr. Karen L. Booker, the company works at the intersection of trade, investment, strategic partnerships, project development and commercial diplomacy.",
+        "founder": {
+          "@type": "Person",
+          "name": "Ambassador Dr. Karen L. Booker"
+        },
+        "email": "info@alkebulan-global.com",
+        "telephone": "+1-212-220-6778",
         "address": {
           "@type": "PostalAddress",
-          "streetAddress": "One World Trade Center",
+          "streetAddress": "1 World Trade Center, Suite 8500",
           "addressLocality": "New York",
-          "addressRegion": "New York",
+          "addressRegion": "NY",
+          "postalCode": "10007",
           "addressCountry": "US"
-        }
+        },
+        "contactPoint": {
+          "@type": "ContactPoint",
+          "contactType": "customer service",
+          "email": "info@alkebulan-global.com",
+          "telephone": "+1-212-220-6778",
+          "availableLanguage": ["English"]
+        },
+        "areaServed": ["United States", "Africa", "Caribbean"]
       }
     </script>
 
@@ -136,9 +153,8 @@
       }
     </script>
 
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Country flags are loaded from flagcdn.com -->
+    <link rel="preconnect" href="https://flagcdn.com" />
   </head>
 
   <body>

@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import Icon from './Icon.jsx';
-import { ceo, advisors, techLeads } from '../team.js';
+import { ceo, advisors, cfLeads, techLeads } from '../team.js';
+import { offices } from '../content.js';
 import './OrgChart.css';
 
 const organizations = [
@@ -10,6 +11,7 @@ const organizations = [
     logo: '/images/team/continental-founders-logo.jpg', 
     logoSize: [580, 470],
     logoAlt: 'Continental Founders: Connecting talent, building across continents',
+    leads: cfLeads,
     text: 'A nonprofit organization advancing entrepreneurship, leadership development, research, and economic empowerment across Africa and the global diaspora.',
     listTitle: 'Key Programs',
     list: [
@@ -147,6 +149,7 @@ export function ProfileDialog({ person, onClose }) {
     <dialog
       ref={ref}
       className="org-dialog"
+      data-lenis-prevent
       aria-labelledby="org-dialog-name"
       onClose={onClose}
       onClick={(event) => {
@@ -156,7 +159,7 @@ export function ProfileDialog({ person, onClose }) {
       {person && (
         <div className="org-dialog-inner">
           <button type="button" className="org-dialog-close" aria-label="Close profile" onClick={onClose}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" /></svg>
+            <Icon name="close" size={20} />
           </button>
           <img src={person.photo} alt={person.name} width="800" height="800" />
           <div className="org-dialog-text">
@@ -191,7 +194,6 @@ function Person({ person, size = 'md' }) {
         aria-label={`View profile: ${person.name}`}
         onClick={() => openProfile(person)}
       />
-      <img className="org-photo" src={person.photo} alt={person.name} width="800" height="800" loading="lazy" decoding="async" />
       <div className="org-person-text">
         <h3>{person.name}</h3>
         <p className="org-role">{person.role}</p>
@@ -234,7 +236,9 @@ function Organization({ org, last }) {
                     aria-label={`View profile: ${lead.name}`}
                     onClick={() => openProfile(lead)}
                   />
-                  <img src={lead.photo} alt={lead.name} width="800" height="800" loading="lazy" decoding="async" />
+                  {org.leadPhotos && (
+                    <img src={lead.photo} alt={lead.name} width="800" height="800" loading="lazy" decoding="async" />
+                  )}
                   <strong>{lead.name}</strong>
                   <span>{lead.role}</span>
                 </li>
@@ -336,6 +340,31 @@ export default function OrgChart() {
             </ul>
           </div>
         </div>
+
+        {/* Country partners: the countries where we have offices */}
+        <section className="country-partners" aria-labelledby="country-partners-title">
+          <div className="country-partners-head">
+            <p className="eyebrow">Country Partners</p>
+            <h3 id="country-partners-title">Where our partnerships are based</h3>
+          </div>
+          <ul className="country-partners-list">
+            {offices.map((office) => (
+              <li key={office.code}>
+                <img
+                  src={`https://flagcdn.com/${office.code}.svg`}
+                  alt={`Flag of ${office.country}`}
+                  width="96"
+                  height="64"
+                  loading="lazy"
+                />
+                <span className="country-partners-name">{office.country}</span>
+                <span className="country-partners-role">
+                  {office.code === 'us' ? 'Headquarters' : 'Satellite office'}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
       </div>
     </section>
 

@@ -3,7 +3,6 @@
   overflow: hidden;
   padding: clamp(64px, 9vw, 112px) 0 clamp(72px, 10vw, 120px);
   background:
-    radial-gradient(circle at 78% 45%, rgba(201, 162, 74, 0.2), transparent 38%),
     radial-gradient(circle at 0% 100%, rgba(28, 53, 87, 0.9), transparent 55%),
     var(--navy-950);
   color: rgba(255, 255, 255, 0.78);
@@ -24,7 +23,6 @@
   height: 100%;
   object-fit: cover;
   object-position: center 50%;
-  translate: 0 var(--hero-shift, 0px);
 }
 
 /* Slideshow: each photo is on show for 7s with a slow zoom, then cross-fades
@@ -68,7 +66,6 @@
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(circle at 78% 45%, rgba(201, 162, 74, 0.2), transparent 38%),
     linear-gradient(90deg, rgba(7, 19, 36, 0.94) 0%, rgba(7, 19, 36, 0.82) 45%, rgba(7, 19, 36, 0.6) 100%),
     linear-gradient(0deg, rgba(7, 19, 36, 0.7) 0%, transparent 40%);
 }
@@ -76,7 +73,6 @@
 @media (max-width: 960px) {
   .hero-bg::after {
     background:
-      radial-gradient(circle at 50% 75%, rgba(201, 162, 74, 0.18), transparent 45%),
       linear-gradient(180deg, rgba(7, 19, 36, 0.9) 0%, rgba(7, 19, 36, 0.8) 55%, rgba(7, 19, 36, 0.88) 100%);
   }
 }
@@ -121,6 +117,15 @@
 
 .hero .eyebrow {
   color: var(--gold-light);
+}
+
+/* Soft shadow keeps the words crisp over the photos */
+.hero-copy {
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.55);
+}
+
+.hero-copy .btn {
+  text-shadow: none;
 }
 
 .hero h1 {
@@ -199,7 +204,7 @@
   transition: transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
-/* Spins continuously on its vertical axis */
+/* Spins continuously on its vertical axis, turning from right to left */
 .coin {
   --coin-depth: 16px;
   animation: coin-turn 9s linear infinite;
@@ -207,7 +212,7 @@
 
 @keyframes coin-turn {
   to {
-    transform: rotateY(360deg);
+    transform: rotateY(-360deg);
   }
 }
 
@@ -380,12 +385,30 @@
 }
 
 @media (max-width: 520px) {
+  .hero {
+    padding-top: 40px;
+  }
+
+  .hero-grid {
+    gap: 32px;
+  }
+
+  .hero h1 {
+    margin-bottom: 18px;
+  }
+
+  .hero-description {
+    margin-bottom: 28px;
+  }
+
   .hero-actions .btn {
     width: 100%;
   }
 
+  /* Headline and buttons first on phones so they show on the first screen */
   .hero-visual {
-    width: min(86%, 300px);
+    width: min(72%, 250px);
+    order: 0;
   }
 
   .hero-badge {
@@ -441,13 +464,8 @@
   translate: calc(var(--px, 0) * 34px) calc(var(--py, 0) * 34px);
 }
 
-.hero-copy {
-  translate: 0 calc(var(--hero-shift, 0px) * -0.25);
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .hero-visual > *,
-  .hero-copy {
+  .hero-visual > * {
     translate: none;
   }
 }

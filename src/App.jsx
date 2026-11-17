@@ -14,6 +14,8 @@ import Navbar from './components/Navbar.jsx';
 import Footer from './components/Footer.jsx';
 import ScrollToTop from './components/ScrollToTop.jsx';
 import Interactions from './components/Interactions.jsx';
+import Motion from './components/Motion.jsx';
+import { startSmoothScroll, stopSmoothScroll } from './lib/smoothScroll.js';
 
 // Public website pages
 import Home from './pages/Home.jsx';
@@ -144,7 +146,7 @@ const seoConfig = {
   '/privacy': {
     title: 'Privacy Policy | Alkebulan Global LLC',
     description:
-      'How Alkebulan Global LLC collects and uses information on this website.',
+      'How Alkebulan Global LLC collects, uses and protects the information you share through this website, including contact and newsletter forms, and the choices you have.',
     keywords: 'Alkebulan Global privacy policy',
   },
 
@@ -155,6 +157,13 @@ const seoConfig = {
     keywords:
       'Contact Alkebulan Global, international business enquiries, African investment partnerships, strategic advisory contact',
   },
+};
+
+// Pages reachable at two addresses: search engines are told to treat the
+// second address as a copy of the first, so they are not seen as duplicates.
+const CANONICAL_ALIAS = {
+  '/about/company-snapshot': '/about',
+  '/services/core-services': '/services',
 };
 
 // ==========================================
@@ -229,7 +238,7 @@ function SEO() {
         document.head.appendChild(canonical);
       }
 
-      canonical.href = `${SITE_URL}${pathname}`;
+      canonical.href = `${SITE_URL}${CANONICAL_ALIAS[pathname] || pathname}`;
     } else if (canonical) {
       canonical.remove();
     }
@@ -248,13 +257,13 @@ function SEO() {
     updateMeta(
       'property',
       'og:url',
-      `${SITE_URL}${pathname}`
+      `${SITE_URL}${CANONICAL_ALIAS[pathname] || pathname}`
     );
 
     updateMeta(
       'property',
       'og:image',
-      `${SITE_URL}/images/alkebulan-global-logo.jpg`
+      `${SITE_URL}/images/og-image.jpg`
     );
 
     updateMeta('property', 'og:locale', 'en_US');
@@ -272,7 +281,7 @@ function SEO() {
     updateMeta(
       'name',
       'twitter:image',
-      `${SITE_URL}/images/alkebulan-global-logo.jpg`
+      `${SITE_URL}/images/og-image.jpg`
     );
   }, [location.pathname]);
 
@@ -315,9 +324,17 @@ function NotFound() {
 
 function AppContent() {
   const location = useLocation();
+  // Each page fades and rises into place when the address changes.
+  const { pathname } = location;
 
   // Identify CMS routes
-  const isAdminRoute = location.pathname.startsWith('/admin');
+  const isAdminRoute = pathname.startsWith('/admin');
+
+  // Smooth scrolling for the whole site (Lenis + GSAP).
+  useEffect(() => {
+    startSmoothScroll();
+    return stopSmoothScroll;
+  }, []);
 
   return (
     <div className={`app ${isAdminRoute ? 'admin-app' : ''}`}>
@@ -336,12 +353,13 @@ function AppContent() {
       <ScrollToTop />
 
       {!isAdminRoute && <Interactions />}
+      {!isAdminRoute && <Motion />}
 
       {/* Public website navigation */}
       {!isAdminRoute && <Navbar />}
 
       <main id="main" tabIndex="-1">
-
+        <div className="page-transition" key={pathname}>
         <Routes>
 
           {/* =====================================
@@ -503,7 +521,7 @@ function AppContent() {
           />
 
         </Routes>
-
+        </div>
       </main>
 
       {/* Public website footer */}

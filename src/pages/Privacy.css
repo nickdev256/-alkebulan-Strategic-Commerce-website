@@ -345,7 +345,6 @@
   padding: 40px;
   border-radius: 20px;
   background:
-    radial-gradient(circle at 100% 0%, rgba(201, 162, 74, 0.25), transparent 55%),
     var(--navy-900);
   color: rgba(255, 255, 255, 0.75);
 }

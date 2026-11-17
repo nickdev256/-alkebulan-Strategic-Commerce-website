@@ -3,6 +3,7 @@ import { Link, NavLink, useLocation } from 'react-router-dom';
 import Logo from './Logo.jsx';
 import Icon from './Icon.jsx';
 import { navigation } from '../navigation.js';
+import { setScrollLocked } from '../lib/smoothScroll.js';
 import './Navbar.css';
 
 export default function Navbar() {
@@ -47,9 +48,11 @@ export default function Navbar() {
       setOpenSection(null);
     };
     document.body.style.overflow = 'hidden';
+    setScrollLocked(true);
     window.addEventListener('keydown', onKey);
     return () => {
       document.body.style.overflow = '';
+      setScrollLocked(false);
       window.removeEventListener('keydown', onKey);
     };
   }, [menuOpen]);
@@ -61,6 +64,7 @@ export default function Navbar() {
 
         <nav
           id="main-nav"
+          data-lenis-prevent
           className={`main-nav ${menuOpen ? 'nav-open' : ''}`}
           aria-label="Main navigation"
           onClick={handleNavClick}

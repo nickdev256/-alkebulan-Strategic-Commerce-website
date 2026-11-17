@@ -4,8 +4,9 @@ import PageHero from '../components/PageHero.jsx';
 import CtaBand from '../components/CtaBand.jsx';
 import PhotoBreak from '../components/PhotoBreak.jsx';
 import Icon from '../components/Icon.jsx';
+import SocialIcon from '../components/SocialIcon.jsx';
 import OrgChart, { ProfileDialog } from '../components/OrgChart.jsx';
-import { ceo, advisors, techLeads } from '../team.js';
+import { ceo, advisors, cfLeads, techLeads } from '../team.js';
 import { subPages } from '../navigation.js';
 import { advantages } from '../content.js';
 import './About.css';
@@ -142,7 +143,7 @@ function CompanySnapshot() {
       <section className="section section--white team-teaser">
         <div className="container team-teaser-inner">
           <div className="team-teaser-faces" aria-hidden="true">
-            {[ceo, ...advisors, ...techLeads].map((person) => (
+            {[ceo, ...advisors, ...cfLeads, ...techLeads].map((person) => (
               <img key={person.name} src={person.photo} alt="" width="800" height="800" loading="lazy" />
             ))}
           </div>
@@ -480,19 +481,36 @@ function WhatSetsUsApart() {
 /* ---------- Our Team: leadership, team cards, organizational chart ---------- */
 
 function TeamCard({ person, onOpen }) {
+  // The whole card opens the profile: the "View profile" button stretches an
+  // invisible layer over the card, and the email link sits above that layer.
   return (
     <li className="team-card">
-      <button type="button" onClick={() => onOpen(person)} aria-label={`View profile: ${person.name}`}>
-        <span className="team-card-photo">
-          <img src={person.photo} alt="" width="800" height="800" loading="lazy" />
-        </span>
-        <span className="team-card-body">
-          <span className="team-card-org">{person.org}</span>
-          <span className="team-card-name">{person.name}</span>
-          <span className="team-card-role">{person.role}</span>
-          <span className="team-card-link">View profile</span>
-        </span>
-      </button>
+      <span className="team-card-photo">
+        <img src={person.photo} alt="" width="800" height="800" loading="lazy" />
+      </span>
+      <span className="team-card-body">
+        <span className="team-card-org">{person.org}</span>
+        <span className="team-card-name">{person.name}</span>
+        <span className="team-card-role">{person.role}</span>
+        <button
+          type="button"
+          className="team-card-link"
+          onClick={() => onOpen(person)}
+          aria-label={`View profile: ${person.name}`}
+        >
+          View profile
+        </button>
+        {'email' in person &&
+          (person.email ? (
+            <a className="team-card-email" href={`mailto:${person.email}`} aria-label={`Email ${person.name}`}>
+              <Icon name="mail" size={18} />
+            </a>
+          ) : (
+            <span className="team-card-email" title="Email address coming soon">
+              <Icon name="mail" size={18} />
+            </span>
+          ))}
+      </span>
     </li>
   );
 }
@@ -528,6 +546,26 @@ function OurTeam() {
               position as a strategic bridge connecting people, institutions,
               resources, markets, and commercial opportunity.
             </p>
+            <ul className="leader-social" aria-label={`${ceo.name} on social media`}>
+              {ceo.social.map((item) => (
+                <li key={item.name}>
+                  {item.url ? (
+                    <a
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={`${ceo.name} on ${item.name}`}
+                    >
+                      <SocialIcon name={item.icon} />
+                    </a>
+                  ) : (
+                    <span title={`${item.name} (link coming soon)`}>
+                      <SocialIcon name={item.icon} />
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       </section>
@@ -544,6 +582,13 @@ function OurTeam() {
           <h3 className="team-group-title">Advisory &amp; Executive Team</h3>
           <ul className="team-grid">
             {advisors.map((person) => (
+              <TeamCard key={person.name} person={person} onOpen={setProfile} />
+            ))}
+          </ul>
+
+          <h3 className="team-group-title">Nonprofit Partner: Continental Founders</h3>
+          <ul className="team-grid">
+            {cfLeads.map((person) => (
               <TeamCard key={person.name} person={person} onOpen={setProfile} />
             ))}
           </ul>
