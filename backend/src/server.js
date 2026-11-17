@@ -22,7 +22,6 @@ import adminRoutes from './routes/adminRoutes.js';
 const app = express();
 
 const PORT = Number(process.env.PORT) || 5000;
-
 const isProduction = process.env.NODE_ENV === 'production';
 
 // ==========================================
@@ -125,13 +124,9 @@ app.use(
 
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-
   limit: 100,
-
   standardHeaders: 'draft-8',
-
   legacyHeaders: false,
-
   message: {
     success: false,
     message: 'Too many requests. Please try again later.',
@@ -139,25 +134,6 @@ const globalLimiter = rateLimit({
 });
 
 app.use('/api', globalLimiter);
-
-// ==========================================
-// PUBLIC NEWSLETTER RATE LIMITING
-// ==========================================
-
-const newsletterSubscriptionLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-
-  limit: 10,
-
-  standardHeaders: 'draft-8',
-
-  legacyHeaders: false,
-
-  message: {
-    success: false,
-    message: 'Too many subscription attempts. Please try again later.',
-  },
-});
 
 // ==========================================
 // HEALTH CHECK
@@ -168,23 +144,6 @@ app.get('/api/health', (req, res) => {
     success: true,
     message: 'Alkebulan Global API is running.',
     environment: process.env.NODE_ENV || 'development',
-    timestamp: new Date().toISOString(),
-  });
-});
-
-// ==========================================
-// NEWSLETTER ROUTE DIAGNOSTIC
-// ==========================================
-
-// TEMPORARY diagnostic endpoint.
-// Visit /api/newsletter/admin/route-check after deployment.
-// Remove this endpoint after confirming the routes work.
-
-app.get('/api/newsletter/admin/route-check', (req, res) => {
-  return res.status(200).json({
-    success: true,
-    message: 'Newsletter admin route diagnostic is working.',
-    route: '/api/newsletter/admin',
     timestamp: new Date().toISOString(),
   });
 });
@@ -202,8 +161,7 @@ app.use(
 // PROTECTED NEWSLETTER ADMIN ROUTES
 // ==========================================
 
-// All routes are protected by requireAdmin inside
-// newsletterAdminRoutes.js.
+// Authentication is enforced inside newsletterAdminRoutes.js.
 //
 // GET    /api/newsletter/admin/subscribers
 // PATCH  /api/newsletter/admin/subscribers/:id/unsubscribe
@@ -225,16 +183,15 @@ app.use(
 // PUBLIC NEWSLETTER ROUTES
 // ==========================================
 
-// Public routes are mounted AFTER admin routes.
-// The subscription rate limiter applies only here.
-//
 // POST /api/newsletter
 // GET  /api/newsletter/unsubscribe
 // POST /api/newsletter/unsubscribe
+//
+// The subscription-specific rate limiter is already
+// applied inside newsletterRoutes.js.
 
 app.use(
   '/api/newsletter',
-  newsletterSubscriptionLimiter,
   newsletterRoutes
 );
 

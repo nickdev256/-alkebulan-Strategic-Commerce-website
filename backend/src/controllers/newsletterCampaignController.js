@@ -7,7 +7,10 @@ import {
   getPublicApiUrl,
 } from '../services/unsubscribeToken.js';
 
-// Website sign-ups use "subscribed". Older records may use "active".
+// ==========================================
+// CONFIGURATION
+// ==========================================
+
 const SENDABLE_STATUSES = ['subscribed', 'active'];
 const SEND_DELAY_MS = 600;
 const SUBSCRIBER_PAGE_SIZE = 1000;
@@ -15,26 +18,55 @@ const TRACKING_INTERVAL = 10;
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const getAdminId = (req) => req.admin?.id || req.user?.id || null;
+const getAdminId = (req) =>
+  req.admin?.id || req.user?.id || null;
+
+const getAdminEmail = (req) =>
+  req.admin?.email || req.user?.email || null;
 
 const sendError = (res, status, message) =>
-  res.status(status).json({ success: false, message });
+  res.status(status).json({
+    success: false,
+    message,
+  });
 
-const hasSendableContent = (campaign) =>
-  Boolean(
-    campaign?.content?.trim() ||
-      (Array.isArray(campaign?.images) && campaign.images.length > 0) ||
-      (Array.isArray(campaign?.sections) &&
-        campaign.sections.some(
-          (section) =>
-            section?.title?.trim() ||
-            section?.content?.trim() ||
-            section?.html?.trim()
-        ))
-  );
+// ==========================================
+// VALIDATION HELPERS
+// ==========================================
+
+const hasSendableContent = (campaign) => {
+  const hasText =
+    typeof campaign?.content === 'string' &&
+    campaign.content.trim().length > 0;
+
+  const hasImages =
+    Array.isArray(campaign?.images) &&
+    campaign.images.length > 0;
+
+  const hasSections =
+    Array.isArray(campaign?.sections) &&
+    campaign.sections.some((section) =>
+      [
+        section?.title,
+        section?.content,
+        section?.text,
+        section?.html,
+      ].some(
+        (value) =>
+          typeof value === 'string' &&
+          value.trim().length > 0
+      )
+    );
+
+  return Boolean(hasText || hasImages || hasSections);
+};
 
 const validateCampaignInput = (body, { partial = false } = {}) => {
   const errors = [];
+
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return ['Invalid campaign information.'];
+  }
 
   if (!partial || Object.hasOwn(body, 'name')) {
     if (typeof body.name !== 'string' || !body.name.trim()) {
@@ -54,11 +86,17 @@ const validateCampaignInput = (body, { partial = false } = {}) => {
     }
   }
 
-  if (Object.hasOwn(body, 'images') && !Array.isArray(body.images)) {
+  if (
+    Object.hasOwn(body, 'images') &&
+    !Array.isArray(body.images)
+  ) {
     errors.push('Campaign images must be an array.');
   }
 
-  if (Object.hasOwn(body, 'sections') && !Array.isArray(body.sections)) {
+  if (
+    Object.hasOwn(body, 'sections') &&
+    !Array.isArray(body.sections)
+  ) {
     errors.push('Campaign sections must be an array.');
   }
 
@@ -72,6 +110,10 @@ const validateCampaignInput = (body, { partial = false } = {}) => {
   return errors;
 };
 
+// ==========================================
+// DATABASE HELPERS
+// ==========================================
+
 const getCampaignById = async (id) => {
   const { data, error } = await supabase
     .from('newsletter_campaigns')
@@ -80,10 +122,10 @@ const getCampaignById = async (id) => {
     .maybeSingle();
 
   if (error) throw error;
+
   return data;
 };
 
-// Load subscribers in pages to avoid Supabase's default response limit.
 const getAllSendableSubscribers = async () => {
   const allSubscribers = [];
   let from = 0;
@@ -93,7 +135,7 @@ const getAllSendableSubscribers = async () => {
 
     const { data, error } = await supabase
       .from('newsletter_subscribers')
-      .select('id, email')
+      .select('id, email, token_version')
       .in('status', SENDABLE_STATUSES)
       .order('created_at', { ascending: true })
       .range(from, to);
@@ -101,23 +143,32 @@ const getAllSendableSubscribers = async () => {
     if (error) throw error;
 
     const page = data || [];
+
     allSubscribers.push(...page);
 
     if (page.length < SUBSCRIBER_PAGE_SIZE) break;
+
     from += SUBSCRIBER_PAGE_SIZE;
   }
 
   return allSubscribers;
 };
 
-// Check email configuration before sending.
+// ==========================================
+// EMAIL CONFIGURATION
+// ==========================================
+
 const assertSendingConfigured = () => {
-  const missing = [
+  const requiredVariables = [
     'RESEND_API_KEY',
     'EMAIL_FROM',
     'PUBLIC_API_URL',
-    'NEWSLETTER_UNSUBSCRIBE_SECRET',
-  ].filter((key) => !process.env[key]);
+    'UNSUBSCRIBE_TOKEN_SECRET',
+  ];
+
+  const missing = requiredVariables.filter(
+    (key) => !process.env[key]
+  );
 
   if (missing.length) {
     throw new Error(
@@ -126,10 +177,18 @@ const assertSendingConfigured = () => {
   }
 
   getPublicApiUrl();
-  buildUnsubscribeUrl('configuration-check');
+
+  if (process.env.UNSUBSCRIBE_TOKEN_SECRET.length < 32) {
+    throw new Error(
+      'UNSUBSCRIBE_TOKEN_SECRET must contain at least 32 characters.'
+    );
+  }
 };
 
-// Update campaign tracking information.
+// ==========================================
+// CAMPAIGN TRACKING
+// ==========================================
+
 const updateCampaignTracking = async (id, fields) => {
   const update = {
     ...fields,
@@ -145,7 +204,6 @@ const updateCampaignTracking = async (id, fields) => {
 
   console.error('Campaign tracking update failed:', error);
 
-  // Fall back to updating status if an optional tracking column is missing.
   if (fields.status) {
     const { error: statusError } = await supabase
       .from('newsletter_campaigns')
@@ -159,16 +217,28 @@ const updateCampaignTracking = async (id, fields) => {
       console.error('Campaign status fallback failed:', statusError);
       return false;
     }
+
+    return true;
   }
 
   return false;
 };
 
 // ==========================================
+// CAMPAIGN EMAIL BUILDER
+// ==========================================
+
+const createCampaignEmail = (campaign, unsubscribeUrl) => {
+  return buildCampaignEmail({
+    ...campaign,
+    unsubscribeUrl,
+  });
+};
+
+// ==========================================
 // SUBSCRIBER MANAGEMENT
 // ==========================================
 
-// GET /api/newsletter/admin/subscribers
 export const getNewsletterSubscribers = async (req, res) => {
   try {
     const { data, error, count } = await supabase
@@ -185,11 +255,19 @@ export const getNewsletterSubscribers = async (req, res) => {
     });
   } catch (error) {
     console.error('Get newsletter subscribers error:', error);
-    return sendError(res, 500, 'Failed to retrieve newsletter subscribers.');
+
+    return sendError(
+      res,
+      500,
+      'Failed to retrieve newsletter subscribers.'
+    );
   }
 };
 
-// PATCH /api/newsletter/admin/subscribers/:id/unsubscribe
+// ==========================================
+// ADMIN UNSUBSCRIBE
+// ==========================================
+
 export const unsubscribeSubscriber = async (req, res) => {
   try {
     const { id } = req.params;
@@ -198,23 +276,56 @@ export const unsubscribeSubscriber = async (req, res) => {
       return sendError(res, 400, 'A subscriber ID is required.');
     }
 
+    const { data: subscriber, error: lookupError } = await supabase
+      .from('newsletter_subscribers')
+      .select('id, token_version')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (lookupError) throw lookupError;
+
+    if (!subscriber) {
+      return sendError(res, 404, 'Subscriber not found.');
+    }
+
+    const currentVersion = subscriber.token_version ?? 0;
+    const nextTokenVersion = currentVersion + 1;
+
     const { data, error } = await supabase
       .from('newsletter_subscribers')
       .update({
         status: 'unsubscribed',
         unsubscribed_at: new Date().toISOString(),
+        token_version: nextTokenVersion,
       })
       .eq('id', id)
+      .eq('token_version', currentVersion)
       .select()
       .maybeSingle();
 
     if (error) throw error;
-    if (!data) return sendError(res, 404, 'Subscriber not found.');
 
-    return res.json({ success: true, subscriber: data });
+    if (!data) {
+      return sendError(
+        res,
+        409,
+        'The subscriber status changed. Refresh the page and try again.'
+      );
+    }
+
+    return res.json({
+      success: true,
+      subscriber: data,
+      message: 'Subscriber successfully unsubscribed.',
+    });
   } catch (error) {
     console.error('Unsubscribe newsletter subscriber error:', error);
-    return sendError(res, 500, 'Failed to unsubscribe this subscriber.');
+
+    return sendError(
+      res,
+      500,
+      'Failed to unsubscribe this subscriber.'
+    );
   }
 };
 
@@ -222,7 +333,6 @@ export const unsubscribeSubscriber = async (req, res) => {
 // CAMPAIGN CRUD
 // ==========================================
 
-// GET /api/newsletter/admin/campaigns
 export const getNewsletterCampaigns = async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -232,31 +342,48 @@ export const getNewsletterCampaigns = async (req, res) => {
 
     if (error) throw error;
 
-    return res.json({ success: true, campaigns: data || [] });
+    return res.json({
+      success: true,
+      campaigns: data || [],
+    });
   } catch (error) {
     console.error('Get newsletter campaigns error:', error);
-    return sendError(res, 500, 'Failed to retrieve newsletter campaigns.');
+
+    return sendError(
+      res,
+      500,
+      'Failed to retrieve newsletter campaigns.'
+    );
   }
 };
 
-// GET /api/newsletter/admin/campaigns/:id
 export const getNewsletterCampaign = async (req, res) => {
   try {
     const campaign = await getCampaignById(req.params.id);
 
-    if (!campaign) return sendError(res, 404, 'Campaign not found.');
+    if (!campaign) {
+      return sendError(res, 404, 'Campaign not found.');
+    }
 
-    return res.json({ success: true, campaign });
+    return res.json({
+      success: true,
+      campaign,
+    });
   } catch (error) {
     console.error('Get newsletter campaign error:', error);
-    return sendError(res, 500, 'Failed to retrieve this campaign.');
+
+    return sendError(
+      res,
+      500,
+      'Failed to retrieve this campaign.'
+    );
   }
 };
 
-// POST /api/newsletter/admin/campaigns
 export const createNewsletterCampaign = async (req, res) => {
   try {
     const body = req.body || {};
+
     const validationErrors = validateCampaignInput(body);
 
     if (validationErrors.length) {
@@ -282,19 +409,28 @@ export const createNewsletterCampaign = async (req, res) => {
 
     if (error) throw error;
 
-    return res.status(201).json({ success: true, campaign: data });
+    return res.status(201).json({
+      success: true,
+      campaign: data,
+    });
   } catch (error) {
     console.error('Create newsletter campaign error:', error);
-    return sendError(res, 500, 'Failed to create the newsletter campaign.');
+
+    return sendError(
+      res,
+      500,
+      'Failed to create the newsletter campaign.'
+    );
   }
 };
 
-// PUT /api/newsletter/admin/campaigns/:id
-// Only draft campaigns can be edited.
 export const updateNewsletterCampaign = async (req, res) => {
   try {
     const body = req.body || {};
-    const validationErrors = validateCampaignInput(body, { partial: true });
+
+    const validationErrors = validateCampaignInput(body, {
+      partial: true,
+    });
 
     if (validationErrors.length) {
       return sendError(res, 400, validationErrors.join(' '));
@@ -322,7 +458,11 @@ export const updateNewsletterCampaign = async (req, res) => {
     }
 
     if (!Object.keys(updates).length) {
-      return sendError(res, 400, 'There are no campaign changes to save.');
+      return sendError(
+        res,
+        400,
+        'There are no campaign changes to save.'
+      );
     }
 
     updates.updated_at = new Date().toISOString();
@@ -340,27 +480,48 @@ export const updateNewsletterCampaign = async (req, res) => {
     if (!data) {
       const existing = await getCampaignById(req.params.id);
 
-      if (!existing) return sendError(res, 404, 'Campaign not found.');
+      if (!existing) {
+        return sendError(res, 404, 'Campaign not found.');
+      }
 
-      return sendError(res, 409, 'Only draft campaigns can be edited.');
+      return sendError(
+        res,
+        409,
+        'Only draft campaigns can be edited.'
+      );
     }
 
-    return res.json({ success: true, campaign: data });
+    return res.json({
+      success: true,
+      campaign: data,
+    });
   } catch (error) {
     console.error('Update newsletter campaign error:', error);
-    return sendError(res, 500, 'Failed to update the newsletter campaign.');
+
+    return sendError(
+      res,
+      500,
+      'Failed to update the newsletter campaign.'
+    );
   }
 };
 
-// POST /api/newsletter/admin/campaigns/:id/publish
-// Publishing does not send the email. It remains a draft for delivery.
+// ==========================================
+// PUBLISH CAMPAIGN
+// ==========================================
+
 export const publishNewsletterCampaign = async (req, res) => {
   try {
     const campaign = await getCampaignById(req.params.id);
 
-    if (!campaign) return sendError(res, 404, 'Campaign not found.');
+    if (!campaign) {
+      return sendError(res, 404, 'Campaign not found.');
+    }
 
-    if (!campaign.subject?.trim() || !hasSendableContent(campaign)) {
+    if (
+      !campaign.subject?.trim() ||
+      !hasSendableContent(campaign)
+    ) {
       return sendError(
         res,
         400,
@@ -369,7 +530,11 @@ export const publishNewsletterCampaign = async (req, res) => {
     }
 
     if (campaign.status !== 'draft') {
-      return sendError(res, 409, 'Only draft campaigns can be published.');
+      return sendError(
+        res,
+        409,
+        'Only draft campaigns can be published.'
+      );
     }
 
     if (campaign.is_published) {
@@ -415,7 +580,9 @@ export const publishNewsletterCampaign = async (req, res) => {
 
     if (
       error?.code === '42703' ||
-      /is_published|published_at|published_by/i.test(error?.message || '')
+      /is_published|published_at|published_by/i.test(
+        error?.message || ''
+      )
     ) {
       return sendError(
         res,
@@ -424,12 +591,18 @@ export const publishNewsletterCampaign = async (req, res) => {
       );
     }
 
-    return sendError(res, 500, 'Failed to publish the newsletter campaign.');
+    return sendError(
+      res,
+      500,
+      'Failed to publish the newsletter campaign.'
+    );
   }
 };
 
-// DELETE /api/newsletter/admin/campaigns/:id
-// Only draft campaigns can be deleted.
+// ==========================================
+// DELETE CAMPAIGN
+// ==========================================
+
 export const deleteNewsletterCampaign = async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -445,9 +618,15 @@ export const deleteNewsletterCampaign = async (req, res) => {
     if (!data) {
       const existing = await getCampaignById(req.params.id);
 
-      if (!existing) return sendError(res, 404, 'Campaign not found.');
+      if (!existing) {
+        return sendError(res, 404, 'Campaign not found.');
+      }
 
-      return sendError(res, 409, 'Only draft campaigns can be deleted.');
+      return sendError(
+        res,
+        409,
+        'Only draft campaigns can be deleted.'
+      );
     }
 
     return res.json({
@@ -456,8 +635,43 @@ export const deleteNewsletterCampaign = async (req, res) => {
     });
   } catch (error) {
     console.error('Delete newsletter campaign error:', error);
-    return sendError(res, 500, 'Failed to delete the newsletter campaign.');
+
+    return sendError(
+      res,
+      500,
+      'Failed to delete the newsletter campaign.'
+    );
   }
+};
+
+// ==========================================
+// INDIVIDUAL DELIVERY TRACKING
+// ==========================================
+
+const createDeliveryRecord = async (campaignId, subscriber) => {
+  const { data, error } = await supabase
+    .from('newsletter_campaign_deliveries')
+    .insert({
+      campaign_id: campaignId,
+      subscriber_id: subscriber.id,
+      email: subscriber.email,
+      status: 'pending',
+    })
+    .select('id')
+    .single();
+
+  if (error) throw error;
+
+  return data;
+};
+
+const updateDeliveryRecord = async (deliveryId, fields) => {
+  const { error } = await supabase
+    .from('newsletter_campaign_deliveries')
+    .update(fields)
+    .eq('id', deliveryId);
+
+  if (error) throw error;
 };
 
 // ==========================================
@@ -470,31 +684,107 @@ const deliverCampaign = async (campaign, subscribers) => {
   let lastError = null;
 
   for (const subscriber of subscribers) {
+    let deliveryId = null;
+    let resendAccepted = false;
+
     try {
-      if (!subscriber.email) {
-        throw new Error('Subscriber has no email address.');
+      if (!subscriber.id || !subscriber.email) {
+        throw new Error(
+          'Subscriber ID or email address is missing.'
+        );
       }
 
-      const unsubscribeUrl = buildUnsubscribeUrl(subscriber.id);
-      const email = buildCampaignEmail(campaign, { unsubscribeUrl });
+      // Create the delivery record before attempting to send.
+      const delivery = await createDeliveryRecord(
+        campaign.id,
+        subscriber
+      );
 
-      await sendCampaignEmail({
+      deliveryId = delivery.id;
+
+      await updateDeliveryRecord(deliveryId, {
+        status: 'sending',
+        attempted_at: new Date().toISOString(),
+        error_message: null,
+      });
+
+      const unsubscribeUrl = buildUnsubscribeUrl(
+        subscriber.id,
+        subscriber.email,
+        subscriber.token_version ?? 0
+      );
+
+      const email = createCampaignEmail(
+        campaign,
+        unsubscribeUrl
+      );
+
+      if (!email?.html || !email?.subject) {
+        throw new Error(
+          'The campaign template did not return a valid email.'
+        );
+      }
+
+      const result = await sendCampaignEmail({
         to: subscriber.email,
         subject: email.subject,
         html: email.html,
         text: email.text,
-        unsubscribeUrl,
       });
 
+      // Resend has accepted the message.
+      resendAccepted = true;
       sentCount += 1;
+
+      const resendEmailId =
+        result?.id ||
+        result?.data?.id ||
+        null;
+
+      try {
+        await updateDeliveryRecord(deliveryId, {
+          status: 'sent',
+          resend_email_id: resendEmailId,
+          delivered_at: new Date().toISOString(),
+          error_message: null,
+        });
+      } catch (trackingError) {
+        // Do not mark an accepted email as failed just because
+        // the database tracking update failed.
+        console.error(
+          `Email accepted by Resend but delivery tracking failed for ${subscriber.email}:`,
+          trackingError
+        );
+
+        lastError = trackingError.message;
+      }
     } catch (error) {
-      failedCount += 1;
-      lastError = error.message || 'Unknown email delivery error';
+      lastError =
+        error?.message || 'Unknown email delivery error';
 
       console.error(
         `Campaign ${campaign.id} failed for subscriber ${subscriber.id}:`,
         lastError
       );
+
+      // Only count as failed if Resend did not accept the message.
+      if (!resendAccepted) {
+        failedCount += 1;
+
+        if (deliveryId) {
+          try {
+            await updateDeliveryRecord(deliveryId, {
+              status: 'failed',
+              error_message: lastError,
+            });
+          } catch (trackingError) {
+            console.error(
+              'Failed to update individual delivery record:',
+              trackingError
+            );
+          }
+        }
+      }
     }
 
     const processedCount = sentCount + failedCount;
@@ -528,7 +818,7 @@ const deliverCampaign = async (campaign, subscribers) => {
   });
 
   console.log(
-    `Campaign ${campaign.id} finished: ${sentCount} sent, ${failedCount} failed.`
+    `Campaign ${campaign.id} finished: ${sentCount} accepted by Resend, ${failedCount} failed.`
   );
 };
 
@@ -536,16 +826,20 @@ const deliverCampaign = async (campaign, subscribers) => {
 // TEST EMAIL
 // ==========================================
 
-// POST /api/newsletter/admin/campaigns/:id/test
 export const sendTestNewsletterCampaign = async (req, res) => {
   try {
     assertSendingConfigured();
 
     const campaign = await getCampaignById(req.params.id);
 
-    if (!campaign) return sendError(res, 404, 'Campaign not found.');
+    if (!campaign) {
+      return sendError(res, 404, 'Campaign not found.');
+    }
 
-    if (!campaign.subject?.trim() || !hasSendableContent(campaign)) {
+    if (
+      !campaign.subject?.trim() ||
+      !hasSendableContent(campaign)
+    ) {
       return sendError(
         res,
         400,
@@ -553,7 +847,7 @@ export const sendTestNewsletterCampaign = async (req, res) => {
       );
     }
 
-    const recipient = req.admin?.email || req.user?.email;
+    const recipient = getAdminEmail(req);
 
     if (!recipient) {
       return sendError(
@@ -563,15 +857,21 @@ export const sendTestNewsletterCampaign = async (req, res) => {
       );
     }
 
-    const unsubscribeUrl = buildUnsubscribeUrl('test');
-    const email = buildCampaignEmail(campaign, { unsubscribeUrl });
+    const email = createCampaignEmail(campaign, '');
+
+    if (!email?.html || !email?.subject) {
+      return sendError(
+        res,
+        400,
+        'The campaign template could not generate a valid email.'
+      );
+    }
 
     await sendCampaignEmail({
       to: recipient,
       subject: `[Test] ${email.subject}`,
       html: email.html,
       text: email.text,
-      unsubscribeUrl,
     });
 
     return res.json({
@@ -593,7 +893,6 @@ export const sendTestNewsletterCampaign = async (req, res) => {
 // SEND CAMPAIGN TO SUBSCRIBERS
 // ==========================================
 
-// POST /api/newsletter/admin/campaigns/:id/send
 export const sendNewsletterCampaign = async (req, res) => {
   try {
     assertSendingConfigured();
@@ -606,7 +905,9 @@ export const sendNewsletterCampaign = async (req, res) => {
   try {
     const draft = await getCampaignById(campaignId);
 
-    if (!draft) return sendError(res, 404, 'Campaign not found.');
+    if (!draft) {
+      return sendError(res, 404, 'Campaign not found.');
+    }
 
     if (draft.status !== 'draft') {
       return sendError(
@@ -616,7 +917,10 @@ export const sendNewsletterCampaign = async (req, res) => {
       );
     }
 
-    if (!draft.subject?.trim() || !hasSendableContent(draft)) {
+    if (
+      !draft.subject?.trim() ||
+      !hasSendableContent(draft)
+    ) {
       return sendError(
         res,
         400,
@@ -624,13 +928,25 @@ export const sendNewsletterCampaign = async (req, res) => {
       );
     }
 
+    if (!draft.is_published) {
+      return sendError(
+        res,
+        409,
+        'Publish this campaign before sending it to subscribers.'
+      );
+    }
+
     const subscribers = await getAllSendableSubscribers();
 
     if (!subscribers.length) {
-      return sendError(res, 400, 'There are no active subscribers to send to.');
+      return sendError(
+        res,
+        400,
+        'There are no active subscribers to send to.'
+      );
     }
 
-    // Only one request can claim the campaign from draft to sending.
+    // Atomically claim the campaign to prevent duplicate sending.
     const { data: claimed, error: claimError } = await supabase
       .from('newsletter_campaigns')
       .update({
@@ -639,6 +955,7 @@ export const sendNewsletterCampaign = async (req, res) => {
       })
       .eq('id', campaignId)
       .eq('status', 'draft')
+      .eq('is_published', true)
       .select('*')
       .maybeSingle();
 
@@ -648,17 +965,33 @@ export const sendNewsletterCampaign = async (req, res) => {
       return sendError(
         res,
         409,
-        'This campaign is already being sent or is no longer a draft.'
+        'This campaign is already being sent or is no longer available for delivery.'
       );
     }
 
-    await updateCampaignTracking(campaignId, {
-      recipient_count: subscribers.length,
-      sent_count: 0,
-      failed_count: 0,
-      sent_by: getAdminId(req),
-      last_error: null,
-    });
+    const trackingInitialized = await updateCampaignTracking(
+      campaignId,
+      {
+        recipient_count: subscribers.length,
+        sent_count: 0,
+        failed_count: 0,
+        sent_by: getAdminId(req),
+        last_error: null,
+      }
+    );
+
+    if (!trackingInitialized) {
+      await updateCampaignTracking(campaignId, {
+        status: 'failed',
+        last_error: 'Campaign tracking could not be initialized.',
+      });
+
+      return sendError(
+        res,
+        500,
+        'Campaign tracking could not be initialized. No emails were sent.'
+      );
+    }
 
     res.status(202).json({
       success: true,
@@ -669,11 +1002,15 @@ export const sendNewsletterCampaign = async (req, res) => {
     });
 
     deliverCampaign(claimed, subscribers).catch(async (error) => {
-      console.error(`Campaign ${campaignId} delivery crashed:`, error);
+      console.error(
+        `Campaign ${campaignId} delivery crashed:`,
+        error
+      );
 
       await updateCampaignTracking(campaignId, {
         status: 'failed',
-        last_error: error.message || 'Campaign delivery crashed.',
+        last_error:
+          error?.message || 'Campaign delivery crashed.',
       });
     });
   } catch (error) {
