@@ -16,6 +16,8 @@ import {
   sendNewsletterCampaign,
   sendTestNewsletterCampaign,
   deleteNewsletterCampaign,
+  previewNewsletterCampaign,
+  uploadNewsletterImage,
 } from '../controllers/newsletterController.js';
 
 import { requireAdmin } from '../middleware/requireAdmin.js';
@@ -75,6 +77,11 @@ router.patch('/admin/subscribers/:id/unsubscribe', unsubscribeSubscriber);
 router.get('/admin/campaigns', getNewsletterCampaigns);
 router.get('/admin/campaigns/:id', getNewsletterCampaign);
 router.post('/admin/campaigns', createNewsletterCampaign);
+// Must stay above the "/admin/campaigns/:id" routes.
+router.post('/admin/campaigns/preview', previewNewsletterCampaign);
+
+// Images for campaigns (stored in Supabase Storage)
+router.post('/admin/uploads/images', uploadNewsletterImage);
 router.patch('/admin/campaigns/:id', updateNewsletterCampaign);
 router.put('/admin/campaigns/:id', updateNewsletterCampaign);
 router.post('/admin/campaigns/:id/publish', publishNewsletterCampaign);

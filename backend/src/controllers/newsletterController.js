@@ -1,3 +1,5 @@
+import crypto from 'node:crypto';
+
 import { supabase } from '../config/supabase.js';
 import {
   sendCampaignEmail,
@@ -9,6 +11,153 @@ import {
   getPublicApiUrl,
   verifyUnsubscribeToken,
 } from '../services/unsubscribeToken.js';
+
+// ==========================================
+// NEWSLETTER SECTION MODEL
+// ==========================================
+//
+// A campaign's `sections` column holds an ordered list of blocks:
+//
+//   { type: 'text',    title, content }
+//   { type: 'image',   url, alt, caption, link }
+//   { type: 'gallery', columns: 1|2|3, images: [{ url, alt, caption }] }
+//   { type: 'button',  label, url }
+//   { type: 'divider' }
+//
+// Older campaigns stored sections without a `type`; those are text blocks.
+// Everything is normalised on save so the email renderer can trust the shape.
+
+const SECTION_TYPES = ['text', 'image', 'gallery', 'button', 'divider'];
+
+const MAX_SECTIONS = 60;
+const MAX_GALLERY_IMAGES = 30;
+
+const LIMITS = {
+  title: 200,
+  content: 20000,
+  alt: 300,
+  caption: 500,
+  label: 80,
+  url: 2048,
+};
+
+const cleanText = (value, max) =>
+  typeof value === 'string' ? value.trim().slice(0, max) : '';
+
+// Multi-line text keeps its line breaks; only the ends are trimmed.
+const cleanMultiline = (value, max) =>
+  typeof value === 'string' ? value.replace(/\r\n/g, '\n').trim().slice(0, max) : '';
+
+const getSafeUrl = (value) => {
+  if (typeof value !== 'string' || !value.trim() || value.length > LIMITS.url) {
+    return '';
+  }
+
+  try {
+    const parsed = new URL(value.trim());
+
+    if (!['http:', 'https:'].includes(parsed.protocol)) return '';
+    if (parsed.username || parsed.password) return '';
+
+    return parsed.toString();
+  } catch {
+    return '';
+  }
+};
+
+const cleanId = (value) =>
+  typeof value === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(value)
+    ? value
+    : crypto.randomUUID();
+
+const imageUrlOf = (image) =>
+  typeof image === 'string'
+    ? image
+    : image?.url || image?.src || image?.publicUrl || image?.image_url || '';
+
+const normalizeImage = (image) => {
+  const url = getSafeUrl(imageUrlOf(image));
+  if (!url) return null;
+
+  const isObject = image && typeof image === 'object';
+
+  return {
+    url,
+    alt: isObject ? cleanText(image.alt, LIMITS.alt) : '',
+    caption: isObject ? cleanText(image.caption, LIMITS.caption) : '',
+  };
+};
+
+const normalizeImages = (images) =>
+  Array.isArray(images)
+    ? images.map(normalizeImage).filter(Boolean).slice(0, MAX_GALLERY_IMAGES)
+    : [];
+
+const normalizeSection = (section) => {
+  if (!section || typeof section !== 'object' || Array.isArray(section)) {
+    return null;
+  }
+
+  const type = SECTION_TYPES.includes(section.type) ? section.type : 'text';
+  const id = cleanId(section.id);
+
+  switch (type) {
+    case 'image': {
+      const image = normalizeImage(section);
+      if (!image) return null;
+
+      return {
+        id,
+        type,
+        ...image,
+        link: getSafeUrl(section.link),
+      };
+    }
+
+    case 'gallery': {
+      const images = normalizeImages(section.images);
+      if (!images.length) return null;
+
+      const columns = [1, 2, 3].includes(Number(section.columns))
+        ? Number(section.columns)
+        : 2;
+
+      return { id, type, columns, images };
+    }
+
+    case 'button': {
+      const label = cleanText(section.label, LIMITS.label);
+      const url = getSafeUrl(section.url);
+      if (!label || !url) return null;
+
+      return { id, type, label, url };
+    }
+
+    case 'divider':
+      return { id, type };
+
+    default: {
+      const title = cleanText(section.title, LIMITS.title);
+      const content = cleanMultiline(
+        section.content || section.text || section.html,
+        LIMITS.content
+      );
+      if (!title && !content) return null;
+
+      return { id, type: 'text', title, content };
+    }
+  }
+};
+
+const normalizeSections = (sections) =>
+  Array.isArray(sections)
+    ? sections.map(normalizeSection).filter(Boolean).slice(0, MAX_SECTIONS)
+    : [];
+
+// True when a section list contains something worth emailing
+// (a divider on its own is not content).
+const sectionsHaveContent = (sections) =>
+  normalizeSections(sections).some((section) => section.type !== 'divider');
 
 const SENDABLE_STATUSES = ['subscribed', 'active'];
 const PAGE_SIZE = 1000;
@@ -423,13 +572,8 @@ export const unsubscribeFromNewsletter = async (req, res) => {
 const hasSendableContent = (campaign) =>
   Boolean(
     (typeof campaign?.content === 'string' && campaign.content.trim()) ||
-      (Array.isArray(campaign?.images) && campaign.images.length) ||
-      (Array.isArray(campaign?.sections) &&
-        campaign.sections.some((section) =>
-          [section?.title, section?.content, section?.text, section?.html].some(
-            (value) => typeof value === 'string' && value.trim()
-          )
-        ))
+      normalizeImages(campaign?.images).length ||
+      sectionsHaveContent(campaign?.sections)
   );
 
 const validateCampaignInput = (body, { partial = false } = {}) => {
@@ -464,6 +608,8 @@ const validateCampaignInput = (body, { partial = false } = {}) => {
 
   if (has('sections') && !Array.isArray(body.sections)) {
     errors.push('Campaign sections must be an array.');
+  } else if (has('sections') && body.sections.length > MAX_SECTIONS) {
+    errors.push(`A campaign can have at most ${MAX_SECTIONS} sections.`);
   }
 
   if (has('preview_text') && typeof body.preview_text !== 'string') {
@@ -471,9 +617,7 @@ const validateCampaignInput = (body, { partial = false } = {}) => {
   }
 
   return errors;
-};
-
-// ==========================================
+};// ==========================================
 // DATABASE HELPERS
 // ==========================================
 
@@ -574,10 +718,58 @@ const assertSendingConfigured = () => {
 // CAMPAIGN EMAIL BUILDER
 // ==========================================
 
-const imageUrl = (image) =>
-  typeof image === 'string'
-    ? image
-    : image?.url || image?.src || image?.publicUrl || '';
+// Fallback HTML for one section (only used if newsletterTemplate.js fails).
+const fallbackImageHtml = (image, width = '100%') =>
+  `<img src="${escapeHtml(image.url)}" alt="${escapeHtml(image.alt)}" style="display:block;width:${width};max-width:100%;height:auto;border:0">` +
+  (image.caption
+    ? `<p style="font-size:12px;color:#777;margin:6px 0 0">${escapeHtml(image.caption)}</p>`
+    : '');
+
+const fallbackSectionHtml = (section, paragraphStyle) => {
+  switch (section.type) {
+    case 'image': {
+      const img = fallbackImageHtml(section);
+      const linked = section.link
+        ? `<a href="${escapeHtml(section.link)}">${img}</a>`
+        : img;
+      return `<div style="margin:20px 0">${linked}</div>`;
+    }
+    case 'gallery':
+      return section.images
+        .map((image) => `<div style="margin:16px 0">${fallbackImageHtml(image)}</div>`)
+        .join('');
+    case 'button':
+      return `<p style="margin:24px 0"><a href="${escapeHtml(section.url)}" style="display:inline-block;padding:12px 22px;background:#142b24;color:#fff;text-decoration:none;border-radius:6px;font-weight:bold">${escapeHtml(section.label)}</a></p>`;
+    case 'divider':
+      return '<hr style="border:0;border-top:1px solid #ddd;margin:24px 0">';
+    default:
+      return (
+        (section.title
+          ? `<h2 style="font-size:20px;margin:24px 0 8px">${escapeHtml(section.title)}</h2>`
+          : '') +
+        (section.content
+          ? `<p style="${paragraphStyle}">${escapeHtml(section.content)}</p>`
+          : '')
+      );
+  }
+};
+
+const fallbackSectionText = (section) => {
+  switch (section.type) {
+    case 'image':
+      return [section.caption, section.url].filter(Boolean).join('\n');
+    case 'gallery':
+      return section.images
+        .map((image) => [image.caption, image.url].filter(Boolean).join('\n'))
+        .join('\n\n');
+    case 'button':
+      return `${section.label}: ${section.url}`;
+    case 'divider':
+      return '';
+    default:
+      return [section.title, section.content].filter(Boolean).join('\n\n');
+  }
+};
 
 const createCampaignEmail = (campaign, unsubscribeUrl = '') => {
   let rendered;
@@ -610,30 +802,16 @@ const createCampaignEmail = (campaign, unsubscribeUrl = '') => {
   }
 
   // Fallback renderer.
-  const sections = Array.isArray(campaign.sections) ? campaign.sections : [];
-  const images = Array.isArray(campaign.images) ? campaign.images : [];
+  const sections = normalizeSections(campaign.sections);
+  const images = normalizeImages(campaign.images);
   const paragraphStyle = 'font-size:16px;line-height:1.7;white-space:pre-line';
 
   const sectionHtml = sections
-    .map((section) => {
-      const title = section?.title
-        ? `<h2 style="font-size:20px;margin:24px 0 8px">${escapeHtml(section.title)}</h2>`
-        : '';
-      const body = section?.content || section?.text || section?.html || '';
-      const bodyHtml = body
-        ? `<p style="${paragraphStyle}">${escapeHtml(plainText(body))}</p>`
-        : '';
-      return `${title}${bodyHtml}`;
-    })
+    .map((section) => fallbackSectionHtml(section, paragraphStyle))
     .join('');
 
   const imageHtml = images
-    .map((image) => {
-      const url = imageUrl(image);
-      if (!url || !/^https:\/\//i.test(url)) return '';
-      const alt = typeof image === 'object' && image ? image.alt || '' : '';
-      return `<p style="margin:20px 0"><img src="${escapeHtml(url)}" alt="${escapeHtml(alt)}" style="display:block;max-width:100%;height:auto;border:0"></p>`;
-    })
+    .map((image) => `<div style="margin:20px 0">${fallbackImageHtml(image)}</div>`)
     .join('');
 
   const content = campaign.content
@@ -657,8 +835,8 @@ const createCampaignEmail = (campaign, unsubscribeUrl = '') => {
 ${preview}
 <h1 style="font-size:26px;line-height:1.3">${escapeHtml(heading)}</h1>
 ${content}
-${sectionHtml}
 ${imageHtml}
+${sectionHtml}
 ${unsubscribe}
 </div>
 </body>
@@ -668,10 +846,8 @@ ${unsubscribe}
     [
       heading,
       campaign.content,
-      ...sections.flatMap((section) => [
-        section?.title,
-        section?.content || section?.text || section?.html,
-      ]),
+      ...images.map((image) => fallbackSectionText({ type: 'image', ...image })),
+      ...sections.map(fallbackSectionText),
     ]
       .filter(Boolean)
       .map(plainText)
@@ -838,8 +1014,8 @@ export const createNewsletterCampaign = async (req, res) => {
       subject: body.subject.trim(),
       preview_text: body.preview_text?.trim() || '',
       content: body.content,
-      images: body.images || [],
-      sections: body.sections || [],
+      images: normalizeImages(body.images),
+      sections: normalizeSections(body.sections),
       status: 'draft',
       is_published: false,
       created_by: adminId(req),
@@ -857,6 +1033,40 @@ export const createNewsletterCampaign = async (req, res) => {
   } catch (error) {
     console.error('Create campaign error:', error);
     return sendError(res, 500, 'Failed to create the newsletter campaign.');
+  }
+};
+
+// ==========================================
+// PREVIEW EMAIL (renders unsaved editor content)
+// ==========================================
+
+export const previewNewsletterCampaign = async (req, res) => {
+  try {
+    const body = req.body || {};
+
+    if (Array.isArray(body.sections) && body.sections.length > MAX_SECTIONS) {
+      return sendError(res, 400, `A campaign can have at most ${MAX_SECTIONS} sections.`);
+    }
+
+    const campaign = {
+      name: typeof body.name === 'string' ? body.name.trim() : '',
+      subject:
+        typeof body.subject === 'string' && body.subject.trim()
+          ? body.subject.trim()
+          : '(No subject yet)',
+      preview_text: typeof body.preview_text === 'string' ? body.preview_text : '',
+      content: typeof body.content === 'string' ? body.content : '',
+      images: normalizeImages(body.images),
+      sections: normalizeSections(body.sections),
+    };
+
+    // A dummy link shows where the real per-subscriber link will appear.
+    const email = createCampaignEmail(campaign, 'https://example.com/unsubscribe-preview');
+
+    return res.json({ success: true, subject: email.subject, html: email.html });
+  } catch (error) {
+    console.error('Preview campaign error:', error);
+    return sendError(res, 500, 'Failed to render the email preview.');
   }
 };
 
@@ -894,6 +1104,9 @@ export const updateNewsletterCampaign = async (req, res) => {
       }
     }
 
+    if (updates.images) updates.images = normalizeImages(updates.images);
+    if (updates.sections) updates.sections = normalizeSections(updates.sections);
+
     if (!Object.keys(updates).length) {
       return sendError(res, 400, 'There are no campaign changes to save.');
     }
@@ -921,9 +1134,7 @@ export const updateNewsletterCampaign = async (req, res) => {
     console.error('Update campaign error:', error);
     return sendError(res, 500, 'Failed to update the newsletter campaign.');
   }
-};
-
-// ==========================================
+};// ==========================================
 // NEWSLETTER DELIVERY WORKER
 // ==========================================
 
@@ -1439,5 +1650,134 @@ export const deleteNewsletterCampaign = async (req, res) => {
   } catch (error) {
     console.error('Delete newsletter campaign error:', error);
     return sendError(res, 500, 'Failed to delete the newsletter campaign.');
+  }
+};
+
+// ==========================================
+// NEWSLETTER IMAGE UPLOADS
+// ==========================================
+//
+// Images are stored in a PUBLIC Supabase Storage bucket, because email
+// clients (Gmail, Outlook...) load images from a plain URL with no login.
+// The bucket is created automatically the first time an image is uploaded.
+
+const BUCKET = process.env.NEWSLETTER_IMAGE_BUCKET?.trim() || 'newsletter-images';
+
+// The browser resizes images before upload, so real uploads are far smaller.
+// The JSON body limit in server.js is 5 MB, and base64 adds about a third.
+const MAX_IMAGE_BYTES = 3.5 * 1024 * 1024;
+
+// Formats every major email client can display (WebP fails in Outlook).
+const ALLOWED_TYPES = {
+  'image/jpeg': { extension: 'jpg', matches: (b) => b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff },
+  'image/png': {
+    extension: 'png',
+    matches: (b) => b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47,
+  },
+  'image/gif': {
+    extension: 'gif',
+    matches: (b) => b[0] === 0x47 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x38,
+  },
+};
+
+let bucketReady = null;
+
+const ensureBucket = () => {
+  if (!bucketReady) {
+    bucketReady = (async () => {
+      const { data, error } = await supabase.storage.getBucket(BUCKET);
+
+      if (data) {
+        if (!data.public) {
+          await supabase.storage.updateBucket(BUCKET, { public: true });
+        }
+        return;
+      }
+
+      if (error && !/not.?found/i.test(error.message || '')) {
+        throw error;
+      }
+
+      const { error: createError } = await supabase.storage.createBucket(BUCKET, {
+        public: true,
+        fileSizeLimit: Math.ceil(MAX_IMAGE_BYTES),
+        allowedMimeTypes: Object.keys(ALLOWED_TYPES),
+      });
+
+      // Another request may have created it a moment ago.
+      if (createError && !/already exists/i.test(createError.message || '')) {
+        throw createError;
+      }
+    })().catch((error) => {
+      bucketReady = null;
+      throw error;
+    });
+  }
+
+  return bucketReady;
+};
+
+const decodeBase64 = (value) => {
+  if (typeof value !== 'string' || !value) return null;
+
+  // Accept both raw base64 and "data:image/png;base64,...." URLs.
+  const base64 = value.includes(',') ? value.slice(value.indexOf(',') + 1) : value;
+
+  if (!/^[A-Za-z0-9+/=\s]+$/.test(base64)) return null;
+
+  return Buffer.from(base64, 'base64');
+};
+
+export const uploadNewsletterImage = async (req, res) => {
+  try {
+    const contentType = String(req.body?.contentType || '').toLowerCase();
+    const type = ALLOWED_TYPES[contentType];
+
+    if (!type) {
+      return sendError(res, 400, 'Only JPG, PNG and GIF images can be used in emails.');
+    }
+
+    const buffer = decodeBase64(req.body?.data);
+
+    if (!buffer || buffer.length === 0) {
+      return sendError(res, 400, 'The image file is empty or could not be read.');
+    }
+
+    if (buffer.length > MAX_IMAGE_BYTES) {
+      return sendError(res, 413, 'This image is too large. Please use an image under 3.5 MB.');
+    }
+
+    // Check the real file contents, not just the declared type.
+    if (!type.matches(buffer)) {
+      return sendError(res, 400, 'The file does not look like a valid image.');
+    }
+
+    await ensureBucket();
+
+    const now = new Date();
+    const month = String(now.getUTCMonth() + 1).padStart(2, '0');
+    const path = `campaigns/${now.getUTCFullYear()}/${month}/${crypto.randomUUID()}.${type.extension}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from(BUCKET)
+      .upload(path, buffer, {
+        contentType,
+        cacheControl: '31536000',
+        upsert: false,
+      });
+
+    if (uploadError) throw uploadError;
+
+    const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+
+    return res.status(201).json({
+      success: true,
+      url: data.publicUrl,
+      path,
+      size: buffer.length,
+    });
+  } catch (error) {
+    console.error('Newsletter image upload error:', error);
+    return sendError(res, 500, 'The image could not be uploaded. Please try again.');
   }
 };

@@ -1,4 +1,3 @@
-
 const escapeHtml = (value = '') => {
   return String(value ?? '').replace(/[&<>"']/g, (character) => {
     const entities = {
@@ -186,6 +185,151 @@ const getSectionContent = (section) => {
   );
 };
 
+// Width of the content column inside the 600px email (600 - 2 x 30 padding).
+const CONTENT_WIDTH = 540;
+const GALLERY_GAP = 12;
+
+const renderImageTag = (image, width) => `
+  <img
+    src="${escapeHtml(image.url)}"
+    alt="${escapeHtml(image.alt || image.caption || 'Newsletter image')}"
+    width="${width}"
+    style="
+      display:block;
+      width:100%;
+      max-width:${width}px;
+      height:auto;
+      border:0;
+      border-radius:6px;
+    "
+  />
+`;
+
+const renderCaption = (caption) =>
+  caption
+    ? `
+      <p style="margin:8px 0 0;color:#777;font-size:12px;line-height:1.5;">
+        ${escapeHtml(caption)}
+      </p>
+    `
+    : '';
+
+const renderImageSection = (section) => {
+  const url = getSafeUrl(section.url);
+  if (!url) return '';
+
+  const image = { ...section, url };
+  const link = getSafeUrl(section.link);
+  const tag = renderImageTag(image, CONTENT_WIDTH);
+
+  return `
+    <div style="margin:0 0 24px;">
+      ${link ? `<a href="${escapeHtml(link)}" target="_blank">${tag}</a>` : tag}
+      ${renderCaption(section.caption)}
+    </div>
+  `;
+};
+
+// Email clients ignore CSS grid/flex, so galleries are built as tables.
+const renderGallerySection = (section) => {
+  const images = (Array.isArray(section.images) ? section.images : [])
+    .map((image) => ({ ...image, url: getSafeUrl(image?.url) }))
+    .filter((image) => image.url);
+
+  if (!images.length) return '';
+
+  const columns = [1, 2, 3].includes(Number(section.columns))
+    ? Number(section.columns)
+    : 2;
+
+  const cellWidth = Math.floor(
+    (CONTENT_WIDTH - GALLERY_GAP * (columns - 1)) / columns
+  );
+
+  const rows = [];
+
+  for (let start = 0; start < images.length; start += columns) {
+    const cells = images.slice(start, start + columns).map((image, index) => `
+      <td
+        width="${cellWidth}"
+        valign="top"
+        style="
+          width:${cellWidth}px;
+          padding:0 0 ${GALLERY_GAP}px ${index === 0 ? 0 : GALLERY_GAP}px;
+        "
+      >
+        ${renderImageTag(image, cellWidth)}
+        ${renderCaption(image.caption)}
+      </td>
+    `);
+
+    // Pad the last row so images keep the same width.
+    while (cells.length < columns) {
+      cells.push(`<td width="${cellWidth}" style="width:${cellWidth}px;padding-left:${GALLERY_GAP}px;"></td>`);
+    }
+
+    rows.push(`<tr>${cells.join('')}</tr>`);
+  }
+
+  return `
+    <table
+      role="presentation"
+      width="100%"
+      cellspacing="0"
+      cellpadding="0"
+      border="0"
+      style="margin:0 0 ${24 - GALLERY_GAP}px;border-collapse:collapse;"
+    >
+      ${rows.join('')}
+    </table>
+  `;
+};
+
+// "Bulletproof" button: a table cell, so Outlook shows the background.
+const renderButtonSection = (section) => {
+  const url = getSafeUrl(section.url);
+  const label = String(section.label || '').trim();
+  if (!url || !label) return '';
+
+  return `
+    <table
+      role="presentation"
+      cellspacing="0"
+      cellpadding="0"
+      border="0"
+      style="margin:4px 0 28px;"
+    >
+      <tr>
+        <td
+          align="center"
+          bgcolor="#142b24"
+          style="border-radius:6px;background:#142b24;"
+        >
+          <a
+            href="${escapeHtml(url)}"
+            target="_blank"
+            style="
+              display:inline-block;
+              padding:13px 26px;
+              color:#ffffff;
+              font-size:15px;
+              font-weight:700;
+              text-decoration:none;
+              border-radius:6px;
+            "
+          >
+            ${escapeHtml(label)}
+          </a>
+        </td>
+      </tr>
+    </table>
+  `;
+};
+
+const renderDividerSection = () => `
+  <hr style="margin:8px 0 28px;border:0;border-top:1px solid #e3e3e3;" />
+`;
+
 const renderSections = (sections = []) => {
   if (!Array.isArray(sections)) return '';
 
@@ -193,6 +337,19 @@ const renderSections = (sections = []) => {
     .map((section) => {
       if (!section || typeof section !== 'object') {
         return '';
+      }
+
+      switch (section.type) {
+        case 'image':
+          return renderImageSection(section);
+        case 'gallery':
+          return renderGallerySection(section);
+        case 'button':
+          return renderButtonSection(section);
+        case 'divider':
+          return renderDividerSection();
+        default:
+          break;
       }
 
       const title = String(
@@ -251,6 +408,21 @@ const formatSectionsAsPlainText = (sections = []) => {
     .map((section) => {
       if (!section || typeof section !== 'object') {
         return '';
+      }
+
+      switch (section.type) {
+        case 'image':
+          return formatImagesAsPlainText([section]);
+        case 'gallery':
+          return formatImagesAsPlainText(section.images);
+        case 'button': {
+          const url = getSafeUrl(section.url);
+          return url && section.label ? `${String(section.label).trim()}: ${url}` : '';
+        }
+        case 'divider':
+          return '----------';
+        default:
+          break;
       }
 
       const sectionTitle = String(
