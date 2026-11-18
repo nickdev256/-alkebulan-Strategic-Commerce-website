@@ -12,7 +12,6 @@ import rateLimit from 'express-rate-limit';
 
 import contactRoutes from './routes/contactRoutes.js';
 import newsletterRoutes from './routes/newsletterRoutes.js';
-import newsletterAdminRoutes from './routes/newsletterAdminRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 
 // ==========================================
@@ -62,7 +61,6 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests without an Origin header.
       if (!origin) {
         return callback(null, true);
       }
@@ -104,7 +102,6 @@ app.use(
 // REQUEST PARSING
 // ==========================================
 
-// Campaigns may contain HTML, images and multiple sections.
 app.use(
   express.json({
     limit: '5mb',
@@ -127,6 +124,7 @@ const globalLimiter = rateLimit({
   limit: 100,
   standardHeaders: 'draft-8',
   legacyHeaders: false,
+
   message: {
     success: false,
     message: 'Too many requests. Please try again later.',
@@ -152,16 +150,19 @@ app.get('/api/health', (req, res) => {
 // CONTACT ROUTES
 // ==========================================
 
-app.use(
-  '/api/contact',
-  contactRoutes
-);
+app.use('/api/contact', contactRoutes);
 
 // ==========================================
-// PROTECTED NEWSLETTER ADMIN ROUTES
+// ALL NEWSLETTER ROUTES
 // ==========================================
 
-// Authentication is enforced inside newsletterAdminRoutes.js.
+// PUBLIC NEWSLETTER ENDPOINTS:
+//
+// POST /api/newsletter
+// GET  /api/newsletter/unsubscribe
+// POST /api/newsletter/unsubscribe
+//
+// PROTECTED ADMIN ENDPOINTS:
 //
 // GET    /api/newsletter/admin/subscribers
 // PATCH  /api/newsletter/admin/subscribers/:id/unsubscribe
@@ -170,39 +171,19 @@ app.use(
 // POST   /api/newsletter/admin/campaigns
 // PUT    /api/newsletter/admin/campaigns/:id
 // POST   /api/newsletter/admin/campaigns/:id/publish
-// DELETE /api/newsletter/admin/campaigns/:id
 // POST   /api/newsletter/admin/campaigns/:id/test
-// POST   /api/newsletter/admin/campaigns/:id/send
-
-app.use(
-  '/api/newsletter/admin',
-  newsletterAdminRoutes
-);
-
-// ==========================================
-// PUBLIC NEWSLETTER ROUTES
-// ==========================================
-
-// POST /api/newsletter
-// GET  /api/newsletter/unsubscribe
-// POST /api/newsletter/unsubscribe
+// DELETE /api/newsletter/admin/campaigns/:id
 //
-// The subscription-specific rate limiter is already
-// applied inside newsletterRoutes.js.
+// All newsletter endpoints are registered in
+// newsletterRoutes.js.
 
-app.use(
-  '/api/newsletter',
-  newsletterRoutes
-);
+app.use('/api/newsletter', newsletterRoutes);
 
 // ==========================================
 // ADMINISTRATOR MANAGEMENT
 // ==========================================
 
-app.use(
-  '/api/admin',
-  adminRoutes
-);
+app.use('/api/admin', adminRoutes);
 
 // ==========================================
 // UNKNOWN API ROUTES
@@ -265,14 +246,13 @@ app.use((err, req, res, next) => {
 
 const server = app.listen(PORT, () => {
   console.log('==========================================');
-  console.log('ALK E B U L A N GLOBAL API');
+  console.log('ALKEBULAN GLOBAL API');
   console.log('==========================================');
   console.log(`Port: ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`Health: http://localhost:${PORT}/api/health`);
   console.log('Contact routes: registered');
-  console.log('Newsletter admin routes: registered');
-  console.log('Public newsletter routes: registered');
+  console.log('Newsletter routes: registered');
   console.log('Administrator routes: registered');
   console.log('==========================================');
 });
@@ -295,18 +275,33 @@ server.on('error', (error) => {
 // GRACEFUL SHUTDOWN
 // ==========================================
 
+let isShuttingDown = false;
+
 const shutdown = (signal) => {
+  if (isShuttingDown) return;
+
+  isShuttingDown = true;
+
   console.log(`${signal} received. Closing server...`);
 
-  server.close(() => {
+  const forceShutdown = setTimeout(() => {
+    console.error('Forced server shutdown.');
+    process.exit(1);
+  }, 10000);
+
+  forceShutdown.unref();
+
+  server.close((error) => {
+    clearTimeout(forceShutdown);
+
+    if (error) {
+      console.error('Error closing server:', error);
+      process.exit(1);
+    }
+
     console.log('Server closed successfully.');
     process.exit(0);
   });
-
-  setTimeout(() => {
-    console.error('Forced server shutdown.');
-    process.exit(1);
-  }, 10000).unref();
 };
 
 process.on('SIGTERM', () => shutdown('SIGTERM'));

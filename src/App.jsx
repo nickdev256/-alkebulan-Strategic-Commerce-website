@@ -1,4 +1,3 @@
-
 import { useEffect } from 'react';
 
 import {
@@ -15,7 +14,10 @@ import Footer from './components/Footer.jsx';
 import ScrollToTop from './components/ScrollToTop.jsx';
 import Interactions from './components/Interactions.jsx';
 import Motion from './components/Motion.jsx';
-import { startSmoothScroll, stopSmoothScroll } from './lib/smoothScroll.js';
+import {
+  startSmoothScroll,
+  stopSmoothScroll,
+} from './lib/smoothScroll.js';
 
 // Public website pages
 import Home from './pages/Home.jsx';
@@ -192,8 +194,8 @@ function SEO() {
   const location = useLocation();
 
   useEffect(() => {
-    const pathname =
-      location.pathname.replace(/\/+$/, '') || '/';
+    // Remove trailing slashes while preserving the homepage path.
+    const pathname = location.pathname.replace(/\/+$/, '') || '/';
 
     const pageSEO = seoConfig[pathname];
     const isKnownPage = Boolean(pageSEO);
@@ -204,6 +206,10 @@ function SEO() {
         'The requested page could not be found on the Alkebulan Global website.',
       keywords: 'Alkebulan Global',
     };
+
+    const canonicalPath = CANONICAL_ALIAS[pathname] || pathname;
+    const canonicalUrl = `${SITE_URL}${canonicalPath}`;
+    const socialImageUrl = `${SITE_URL}/images/og-image.jpg`;
 
     // Page title
     document.title = currentSEO.title;
@@ -238,7 +244,7 @@ function SEO() {
         document.head.appendChild(canonical);
       }
 
-      canonical.href = `${SITE_URL}${CANONICAL_ALIAS[pathname] || pathname}`;
+      canonical.href = canonicalUrl;
     } else if (canonical) {
       canonical.remove();
     }
@@ -254,18 +260,16 @@ function SEO() {
       currentSEO.description || DEFAULT_DESCRIPTION
     );
 
-    updateMeta(
-      'property',
-      'og:url',
-      `${SITE_URL}${CANONICAL_ALIAS[pathname] || pathname}`
-    );
+    if (isKnownPage) {
+      updateMeta('property', 'og:url', canonicalUrl);
+    } else {
+      const ogUrl = document.head.querySelector(
+        'meta[property="og:url"]'
+      );
+      ogUrl?.remove();
+    }
 
-    updateMeta(
-      'property',
-      'og:image',
-      `${SITE_URL}/images/og-image.jpg`
-    );
-
+    updateMeta('property', 'og:image', socialImageUrl);
     updateMeta('property', 'og:locale', 'en_US');
 
     // Twitter metadata
@@ -278,11 +282,7 @@ function SEO() {
       currentSEO.description || DEFAULT_DESCRIPTION
     );
 
-    updateMeta(
-      'name',
-      'twitter:image',
-      `${SITE_URL}/images/og-image.jpg`
-    );
+    updateMeta('name', 'twitter:image', socialImageUrl);
   }, [location.pathname]);
 
   return null;
@@ -324,21 +324,27 @@ function NotFound() {
 
 function AppContent() {
   const location = useLocation();
-  // Each page fades and rises into place when the address changes.
   const { pathname } = location;
 
-  // Identify CMS routes
+  // Identify CMS routes.
   const isAdminRoute = pathname.startsWith('/admin');
 
-  // Smooth scrolling for the whole site (Lenis + GSAP).
+  // Smooth scrolling is only enabled on the public website.
+  // The admin dashboard is kept independent of Lenis and GSAP scrolling.
   useEffect(() => {
+    if (isAdminRoute) {
+      return undefined;
+    }
+
     startSmoothScroll();
-    return stopSmoothScroll;
-  }, []);
+
+    return () => {
+      stopSmoothScroll();
+    };
+  }, [isAdminRoute]);
 
   return (
     <div className={`app ${isAdminRoute ? 'admin-app' : ''}`}>
-
       {/* Public website SEO */}
       {!isAdminRoute && <SEO />}
 
@@ -360,173 +366,144 @@ function AppContent() {
 
       <main id="main" tabIndex="-1">
         <div className="page-transition" key={pathname}>
-        <Routes>
+          <Routes>
+            {/* =====================================
+                PUBLIC WEBSITE ROUTES
+            ===================================== */}
 
-          {/* =====================================
-              PUBLIC WEBSITE ROUTES
-          ===================================== */}
+            {/* Homepage */}
+            <Route path="/" element={<Home />} />
 
-          {/* Homepage */}
-          <Route path="/" element={<Home />} />
-
-          {/* Old HTML URL redirects */}
-          <Route
-            path="/index.html"
-            element={<Navigate to="/" replace />}
-          />
-
-          <Route
-            path="/about.html"
-            element={<Navigate to="/about" replace />}
-          />
-
-          <Route
-            path="/contact.html"
-            element={<Navigate to="/contact" replace />}
-          />
-
-          <Route
-            path="/services.html"
-            element={<Navigate to="/services" replace />}
-          />
-
-          <Route
-            path="/service-detail.html"
-            element={<Navigate to="/services" replace />}
-          />
-
-          <Route
-            path="/portfolio.html"
-            element={<Navigate to="/portfolio" replace />}
-          />
-
-          <Route
-            path="/csr.html"
-            element={<Navigate to="/csr" replace />}
-          />
-
-          {/* About */}
-          <Route
-            path="/about"
-            element={<About />}
-          />
-
-          <Route
-            path="/about/company-snapshot"
-            element={<About />}
-          />
-
-          <Route
-            path="/about/who-we-are"
-            element={<About />}
-          />
-
-          <Route
-            path="/about/strategic-partners"
-            element={<About />}
-          />
-
-          <Route
-            path="/about/what-sets-us-apart"
-            element={<About />}
-          />
-
-          <Route
-            path="/about/:slug"
-            element={<About />}
-          />
-
-          {/* Services */}
-          <Route
-            path="/services"
-            element={<Services />}
-          />
-
-          <Route
-            path="/services/sectors"
-            element={<Services />}
-          />
-
-          <Route
-            path="/services/core-services"
-            element={<Services />}
-          />
-
-          {/* Portfolio */}
-          <Route
-            path="/portfolio"
-            element={<Portfolio />}
-          />
-
-          {/* Corporate Social Responsibility */}
-          <Route
-            path="/csr"
-            element={<CSR />}
-          />
-
-          {/* Contact */}
-          <Route
-            path="/contact"
-            element={<Contact />}
-          />
-
-          {/* Privacy */}
-          <Route
-            path="/privacy"
-            element={<Privacy />}
-          />
-
-
-          {/* =====================================
-              CMS AUTHENTICATION ROUTES
-          ===================================== */}
-
-          <Route
-            path="/admin/login"
-            element={<AdminLogin />}
-          />
-
-          <Route
-            path="/admin/register"
-            element={<AdminRegister />}
-          />
-
-          <Route
-            path="/admin/forgot-password"
-            element={<ForgotPassword />}
-          />
-
-
-          {/* =====================================
-              PROTECTED CMS ROUTES
-          ===================================== */}
-
-          <Route element={<ProtectedRoute />}>
-
+            {/* Old HTML URL redirects */}
             <Route
-              path="/admin/dashboard"
-              element={<AdminDashboard />}
+              path="/index.html"
+              element={<Navigate to="/" replace />}
             />
 
-          </Route>
+            <Route
+              path="/about.html"
+              element={<Navigate to="/about" replace />}
+            />
 
+            <Route
+              path="/contact.html"
+              element={<Navigate to="/contact" replace />}
+            />
 
-          {/* =====================================
-              UNKNOWN ROUTES
-          ===================================== */}
+            <Route
+              path="/services.html"
+              element={<Navigate to="/services" replace />}
+            />
 
-          <Route
-            path="*"
-            element={<NotFound />}
-          />
+            <Route
+              path="/service-detail.html"
+              element={<Navigate to="/services" replace />}
+            />
 
-        </Routes>
+            <Route
+              path="/portfolio.html"
+              element={<Navigate to="/portfolio" replace />}
+            />
+
+            <Route
+              path="/csr.html"
+              element={<Navigate to="/csr" replace />}
+            />
+
+            {/* About */}
+            <Route path="/about" element={<About />} />
+
+            <Route
+              path="/about/company-snapshot"
+              element={<About />}
+            />
+
+            <Route
+              path="/about/who-we-are"
+              element={<About />}
+            />
+
+            <Route
+              path="/about/strategic-partners"
+              element={<About />}
+            />
+
+            <Route
+              path="/about/what-sets-us-apart"
+              element={<About />}
+            />
+
+            <Route
+              path="/about/:slug"
+              element={<About />}
+            />
+
+            {/* Services */}
+            <Route path="/services" element={<Services />} />
+
+            <Route
+              path="/services/sectors"
+              element={<Services />}
+            />
+
+            <Route
+              path="/services/core-services"
+              element={<Services />}
+            />
+
+            {/* Portfolio */}
+            <Route path="/portfolio" element={<Portfolio />} />
+
+            {/* Corporate Social Responsibility */}
+            <Route path="/csr" element={<CSR />} />
+
+            {/* Contact */}
+            <Route path="/contact" element={<Contact />} />
+
+            {/* Privacy */}
+            <Route path="/privacy" element={<Privacy />} />
+
+            {/* =====================================
+                CMS AUTHENTICATION ROUTES
+            ===================================== */}
+
+            <Route
+              path="/admin/login"
+              element={<AdminLogin />}
+            />
+
+            <Route
+              path="/admin/register"
+              element={<AdminRegister />}
+            />
+
+            <Route
+              path="/admin/forgot-password"
+              element={<ForgotPassword />}
+            />
+
+            {/* =====================================
+                PROTECTED CMS ROUTES
+            ===================================== */}
+
+            <Route element={<ProtectedRoute />}>
+              <Route
+                path="/admin/dashboard"
+                element={<AdminDashboard />}
+              />
+            </Route>
+
+            {/* =====================================
+                UNKNOWN ROUTES
+            ===================================== */}
+
+            <Route path="*" element={<NotFound />} />
+          </Routes>
         </div>
       </main>
 
       {/* Public website footer */}
       {!isAdminRoute && <Footer />}
-
     </div>
   );
 }

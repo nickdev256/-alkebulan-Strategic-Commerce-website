@@ -4,8 +4,6 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { useNavigate } from 'react-router-dom';
 
-
-
 import {
 
   LayoutDashboard,
@@ -58,19 +56,13 @@ import {
 
 } from 'lucide-react';
 
-
-
 import { useAuth } from '../context/AuthContext';
 
 import { supabase } from '../../lib/supabase';
 
 import Newsletter from '../components/Newsletter.jsx';
 
-
-
 import './AdminDashboard.css';
-
-
 
 // ==========================================
 
@@ -78,27 +70,18 @@ import './AdminDashboard.css';
 
 // ==========================================
 
-
-
 const API_URL = (
-
-  import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000' : '')
-
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.DEV ? 'http://localhost:5000' : '')
 ).replace(/\/+$/, '');
 
-
-
 const GLOBE_EDGE_LAYERS = 12;
-
-
 
 // ==========================================
 
 // DASHBOARD NAVIGATION
 
 // ==========================================
-
-
 
 const navigation = [
 
@@ -122,15 +105,11 @@ const navigation = [
 
 ];
 
-
-
 // ==========================================
 
 // DASHBOARD STATISTICS
 
 // ==========================================
-
-
 
 const statistics = [
 
@@ -184,15 +163,11 @@ const statistics = [
 
 ];
 
-
-
 // ==========================================
 
 // QUICK ACCESS LINKS
 
 // ==========================================
-
-
 
 const quickLinks = [
 
@@ -248,15 +223,11 @@ const quickLinks = [
 
 ];
 
-
-
 // ==========================================
 
 // RECENT ACTIVITIES
 
 // ==========================================
-
-
 
 const activities = [
 
@@ -292,15 +263,11 @@ const activities = [
 
 ];
 
-
-
 // ==========================================
 
 // HELPERS
 
 // ==========================================
-
-
 
 const getAccessToken = async () => {
 
@@ -312,11 +279,7 @@ const getAccessToken = async () => {
 
   } = await supabase.auth.getSession();
 
-
-
   if (error) throw error;
-
-
 
   if (!session?.access_token) {
 
@@ -324,31 +287,21 @@ const getAccessToken = async () => {
 
   }
 
-
-
   return session.access_token;
 
 };
-
-
 
 const formatDate = (date) => {
 
   if (!date) return 'Date unavailable';
 
-
-
   const parsedDate = new Date(date);
-
-
 
   if (Number.isNaN(parsedDate.getTime())) {
 
     return 'Date unavailable';
 
   }
-
-
 
   return parsedDate.toLocaleDateString(undefined, {
 
@@ -362,25 +315,17 @@ const formatDate = (date) => {
 
 };
 
-
-
 const getGreeting = () => {
 
   const hour = new Date().getHours();
-
-
 
   if (hour < 12) return 'Good morning';
 
   if (hour < 18) return 'Good afternoon';
 
-
-
   return 'Good evening';
 
 };
-
-
 
 // ==========================================
 
@@ -388,23 +333,19 @@ const getGreeting = () => {
 
 // ==========================================
 
-
-
 export default function AdminDashboard() {
 
   const { admin, user, logout } = useAuth();
 
   const navigate = useNavigate();
 
-
-
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const [activeSection, setActiveSection] = useState('Overview');
 
   const [loggingOut, setLoggingOut] = useState(false);
-
-
+  const [accessToken, setAccessToken] = useState('');
+  const [sessionLoading, setSessionLoading] = useState(true);
 
   // Registration approval state
 
@@ -420,7 +361,49 @@ export default function AdminDashboard() {
 
   const [selectedRoles, setSelectedRoles] = useState({});
 
+  // Keep the newsletter dashboard supplied with the current Supabase token.
+  useEffect(() => {
+    let mounted = true;
 
+    const loadSession = async () => {
+      try {
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession();
+
+        if (error) throw error;
+
+        if (mounted) {
+          setAccessToken(session?.access_token || '');
+          setSessionLoading(false);
+        }
+      } catch (error) {
+        console.error('Unable to retrieve administrator session:', error);
+
+        if (mounted) {
+          setAccessToken('');
+          setSessionLoading(false);
+        }
+      }
+    };
+
+    loadSession();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (mounted) {
+        setAccessToken(session?.access_token || '');
+        setSessionLoading(false);
+      }
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
 
   const fullName =
 
@@ -430,11 +413,7 @@ export default function AdminDashboard() {
 
     'Administrator';
 
-
-
   const firstName = fullName.split(' ')[0];
-
-
 
   const isOwner =
 
@@ -442,15 +421,11 @@ export default function AdminDashboard() {
 
     admin?.status === 'approved';
 
-
-
   const roleLabel = isOwner
 
     ? 'CMS Owner'
 
     : admin?.role || 'Administrator';
-
-
 
   // ==========================================
 
@@ -458,13 +433,9 @@ export default function AdminDashboard() {
 
   // ==========================================
 
-
-
   useEffect(() => {
 
     if (!sidebarOpen) return undefined;
-
-
 
     const handleKey = (event) => {
 
@@ -472,17 +443,11 @@ export default function AdminDashboard() {
 
     };
 
-
-
     const previousOverflow = document.body.style.overflow;
 
     document.body.style.overflow = 'hidden';
 
-
-
     window.addEventListener('keydown', handleKey);
-
-
 
     return () => {
 
@@ -494,15 +459,11 @@ export default function AdminDashboard() {
 
   }, [sidebarOpen]);
 
-
-
   // ==========================================
 
   // LOAD PENDING REGISTRATION REQUESTS
 
   // ==========================================
-
-
 
   const loadPendingUsers = useCallback(async () => {
 
@@ -514,19 +475,13 @@ export default function AdminDashboard() {
 
     }
 
-
-
     setApprovalLoading(true);
 
     setApprovalError('');
 
-
-
     try {
 
       const accessToken = await getAccessToken();
-
-
 
       const response = await fetch(
 
@@ -548,11 +503,7 @@ export default function AdminDashboard() {
 
       );
 
-
-
       const result = await response.json();
-
-
 
       if (!response.ok || !result.success) {
 
@@ -566,8 +517,6 @@ export default function AdminDashboard() {
 
       }
 
-
-
       setPendingUsers(result.administrators || []);
 
     } catch (error) {
@@ -579,8 +528,6 @@ export default function AdminDashboard() {
         error
 
       );
-
-
 
       setApprovalError(
 
@@ -596,21 +543,15 @@ export default function AdminDashboard() {
 
   }, [isOwner]);
 
-
-
   // ==========================================
 
   // APPROVE OR REJECT REGISTRATION
 
   // ==========================================
 
-
-
   const reviewRegistration = async (userId, decision) => {
 
     if (!isOwner || processingUser) return;
-
-
 
     const applicant = pendingUsers.find(
 
@@ -618,15 +559,9 @@ export default function AdminDashboard() {
 
     );
 
-
-
     if (!applicant) return;
 
-
-
     const role = selectedRoles[userId] || 'admin';
-
-
 
     const confirmed = window.confirm(
 
@@ -638,11 +573,7 @@ export default function AdminDashboard() {
 
     );
 
-
-
     if (!confirmed) return;
-
-
 
     setProcessingUser(userId);
 
@@ -650,13 +581,9 @@ export default function AdminDashboard() {
 
     setApprovalSuccess('');
 
-
-
     try {
 
       const accessToken = await getAccessToken();
-
-
 
       const endpoint =
 
@@ -665,8 +592,6 @@ export default function AdminDashboard() {
           ? `${API_URL}/api/admin/${userId}/approve`
 
           : `${API_URL}/api/admin/${userId}/reject`;
-
-
 
       const response = await fetch(endpoint, {
 
@@ -688,11 +613,7 @@ export default function AdminDashboard() {
 
       });
 
-
-
       const result = await response.json();
-
-
 
       if (!response.ok || !result.success) {
 
@@ -706,8 +627,6 @@ export default function AdminDashboard() {
 
       }
 
-
-
       setApprovalSuccess(
 
         decision === 'approve'
@@ -717,8 +636,6 @@ export default function AdminDashboard() {
           : `${applicant.email} has been rejected.`
 
       );
-
-
 
       setSelectedRoles((previous) => {
 
@@ -730,15 +647,11 @@ export default function AdminDashboard() {
 
       });
 
-
-
       await loadPendingUsers();
 
     } catch (error) {
 
       console.error('Registration review failed:', error);
-
-
 
       setApprovalError(
 
@@ -756,25 +669,17 @@ export default function AdminDashboard() {
 
   };
 
-
-
   // ==========================================
 
   // LOGOUT
 
   // ==========================================
 
-
-
   const handleLogout = async () => {
 
     if (loggingOut) return;
 
-
-
     setLoggingOut(true);
-
-
 
     try {
 
@@ -783,8 +688,6 @@ export default function AdminDashboard() {
     } catch (error) {
 
       console.error('Server sign-out failed:', error);
-
-
 
       try {
 
@@ -808,15 +711,11 @@ export default function AdminDashboard() {
 
   };
 
-
-
   // ==========================================
 
   // NAVIGATION
 
   // ==========================================
-
-
 
   const handleNavigation = (section) => {
 
@@ -830,15 +729,11 @@ export default function AdminDashboard() {
 
   };
 
-
-
   // ==========================================
 
   // LOAD OWNER APPROVALS WHEN SECTION OPENS
 
   // ==========================================
-
-
 
   useEffect(() => {
 
@@ -850,15 +745,11 @@ export default function AdminDashboard() {
 
   }, [activeSection, isOwner, loadPendingUsers]);
 
-
-
   // ==========================================
 
   // USER APPROVALS VIEW
 
   // ==========================================
-
-
 
   const renderUserApprovals = () => (
 
@@ -873,8 +764,6 @@ export default function AdminDashboard() {
           <h3>Pending User Approvals</h3>
 
         </div>
-
-
 
         <button
 
@@ -908,8 +797,6 @@ export default function AdminDashboard() {
 
       </div>
 
-
-
       {approvalError && (
 
         <div className="ag-approval-alert ag-approval-alert-error">
@@ -922,8 +809,6 @@ export default function AdminDashboard() {
 
       )}
 
-
-
       {approvalSuccess && (
 
         <div className="ag-approval-alert ag-approval-alert-success">
@@ -935,8 +820,6 @@ export default function AdminDashboard() {
         </div>
 
       )}
-
-
 
       {approvalLoading ? (
 
@@ -996,8 +879,6 @@ export default function AdminDashboard() {
 
                 </div>
 
-
-
                 <div className="ag-approval-person-info">
 
                   <strong>
@@ -1006,11 +887,7 @@ export default function AdminDashboard() {
 
                   </strong>
 
-
-
                   <span>{person.email}</span>
-
-
 
                   <small>
 
@@ -1022,15 +899,11 @@ export default function AdminDashboard() {
 
               </div>
 
-
-
               <div className="ag-approval-actions">
 
                 <label className="ag-approval-role">
 
                   <span>Assign role</span>
-
-
 
                   <select
 
@@ -1059,8 +932,6 @@ export default function AdminDashboard() {
                   </select>
 
                 </label>
-
-
 
                 <button
 
@@ -1098,8 +969,6 @@ export default function AdminDashboard() {
 
                 </button>
 
-
-
                 <button
 
                   type="button"
@@ -1136,23 +1005,17 @@ export default function AdminDashboard() {
 
   );
 
-
-
   // ==========================================
 
   // SIDEBAR NAVIGATION
 
   // ==========================================
 
-
-
   const visibleNavigation = navigation.filter(
 
     (item) => !item.ownerOnly || isOwner
 
   );
-
-
 
   return (
 
@@ -1174,11 +1037,7 @@ export default function AdminDashboard() {
 
       )}
 
-
-
       {/* SIDEBAR */}
-
-
 
       <aside
 
@@ -1196,8 +1055,6 @@ export default function AdminDashboard() {
 
           <div className="ag-dashboard-brand-mark">A</div>
 
-
-
           <div>
 
             <h2>ALKEBULAN</h2>
@@ -1205,8 +1062,6 @@ export default function AdminDashboard() {
             <span>GLOBAL LLC</span>
 
           </div>
-
-
 
           <button
 
@@ -1226,15 +1081,11 @@ export default function AdminDashboard() {
 
         </div>
 
-
-
         <div className="ag-dashboard-menu-label">
 
           WORKSPACE
 
         </div>
-
-
 
         <nav className="ag-dashboard-navigation">
 
@@ -1243,8 +1094,6 @@ export default function AdminDashboard() {
             const Icon = item.icon;
 
             const isActive = activeSection === item.label;
-
-
 
             return (
 
@@ -1268,11 +1117,7 @@ export default function AdminDashboard() {
 
                 <span>{item.label}</span>
 
-
-
                 {isActive && <ChevronRight size={16} />}
-
-
 
                 {item.label === 'User Approvals' &&
 
@@ -1294,15 +1139,11 @@ export default function AdminDashboard() {
 
         </nav>
 
-
-
         <div className="ag-dashboard-sidebar-bottom">
 
           <div className="ag-dashboard-sidebar-note">
 
             <Globe size={20} />
-
-
 
             <div>
 
@@ -1320,8 +1161,6 @@ export default function AdminDashboard() {
 
           </div>
 
-
-
           <div className="ag-dashboard-sidebar-profile">
 
             <div className="ag-dashboard-avatar">
@@ -1329,8 +1168,6 @@ export default function AdminDashboard() {
               {fullName.charAt(0).toUpperCase()}
 
             </div>
-
-
 
             <div>
 
@@ -1341,8 +1178,6 @@ export default function AdminDashboard() {
             </div>
 
           </div>
-
-
 
           <button
 
@@ -1372,8 +1207,6 @@ export default function AdminDashboard() {
 
             )}
 
-
-
             <span>
 
               {loggingOut ? 'Signing out...' : 'Sign out'}
@@ -1381,8 +1214,6 @@ export default function AdminDashboard() {
             </span>
 
           </button>
-
-
 
           <div className="ag-dashboard-sidebar-footer">
 
@@ -1396,17 +1227,11 @@ export default function AdminDashboard() {
 
       </aside>
 
-
-
       {/* MAIN CONTENT */}
-
-
 
       <main className="ag-dashboard-main">
 
         {/* TOPBAR */}
-
-
 
         <header className="ag-dashboard-topbar">
 
@@ -1432,8 +1257,6 @@ export default function AdminDashboard() {
 
             </button>
 
-
-
             <div className="ag-dashboard-heading">
 
               <span className="ag-dashboard-breadcrumb">
@@ -1442,15 +1265,11 @@ export default function AdminDashboard() {
 
               </span>
 
-
-
               <h1>{activeSection}</h1>
 
             </div>
 
           </div>
-
-
 
           <div className="ag-dashboard-topbar-right">
 
@@ -1474,8 +1293,6 @@ export default function AdminDashboard() {
 
             </a>
 
-
-
             <button
 
               type="button"
@@ -1488,8 +1305,6 @@ export default function AdminDashboard() {
 
               <Bell size={19} />
 
-
-
               {pendingUsers.length > 0 && (
 
                 <i className="ag-dashboard-notification-dot" />
@@ -1498,8 +1313,6 @@ export default function AdminDashboard() {
 
             </button>
 
-
-
             <div className="ag-dashboard-user">
 
               <div className="ag-dashboard-avatar">
@@ -1507,8 +1320,6 @@ export default function AdminDashboard() {
                 {fullName.charAt(0).toUpperCase()}
 
               </div>
-
-
 
               <div className="ag-dashboard-user-info">
 
@@ -1519,8 +1330,6 @@ export default function AdminDashboard() {
               </div>
 
             </div>
-
-
 
             <button
 
@@ -1560,17 +1369,11 @@ export default function AdminDashboard() {
 
         </header>
 
-
-
         {/* DASHBOARD BODY */}
-
-
 
         <div className="ag-dashboard-content">
 
           {/* WELCOME SECTION */}
-
-
 
           <section className="ag-dashboard-welcome">
 
@@ -1582,15 +1385,11 @@ export default function AdminDashboard() {
 
               </span>
 
-
-
               <h2>
 
                 {getGreeting()}, {firstName}.
 
               </h2>
-
-
 
               <p>
 
@@ -1599,8 +1398,6 @@ export default function AdminDashboard() {
                 your digital presence from one place.
 
               </p>
-
-
 
               <div className="ag-dashboard-welcome-actions">
 
@@ -1624,8 +1421,6 @@ export default function AdminDashboard() {
 
                 </button>
 
-
-
                 <a
 
                   href="/"
@@ -1646,8 +1441,6 @@ export default function AdminDashboard() {
 
             </div>
 
-
-
             <div
 
               className="ag-dashboard-welcome-emblem"
@@ -1658,23 +1451,17 @@ export default function AdminDashboard() {
 
               <span className="ag-globe-glow" />
 
-
-
               <span className="ag-globe-orbit ag-globe-orbit--outer">
 
                 <span className="ag-globe-orbit-dot" />
 
               </span>
 
-
-
               <span className="ag-globe-orbit ag-globe-orbit--inner">
 
                 <span className="ag-globe-orbit-dot" />
 
               </span>
-
-
 
               <div className="ag-globe-coin-wrap">
 
@@ -1700,8 +1487,6 @@ export default function AdminDashboard() {
 
                   )}
 
-
-
                   <div className="ag-globe-coin-face ag-globe-coin-face--front">
 
                     <img
@@ -1717,8 +1502,6 @@ export default function AdminDashboard() {
                     />
 
                   </div>
-
-
 
                   <div className="ag-globe-coin-face ag-globe-coin-face--back">
 
@@ -1740,8 +1523,6 @@ export default function AdminDashboard() {
 
               </div>
 
-
-
               <span className="ag-dashboard-welcome-badge">
 
                 <Activity size={15} />
@@ -1752,27 +1533,33 @@ export default function AdminDashboard() {
 
           </section>
 
-
-
           {/* SECTION CONTENT */}
-
-
 
           {activeSection === 'User Approvals' && isOwner ? (
 
             renderUserApprovals()
 
-          ) : activeSection === 'Newsletter' ? (
-
-            <Newsletter />
-
+           ) : activeSection === 'Newsletter' ? (
+            sessionLoading ? (
+              <div className="ag-dashboard-panel">
+                <p>Loading administrator session...</p>
+              </div>
+            ) : accessToken ? (
+              <Newsletter accessToken={accessToken} />
+            ) : (
+              <div className="ag-dashboard-panel">
+                <h3>Administrator session unavailable</h3>
+                <p>
+                  Your session could not be retrieved. Please sign out and
+                  sign in again before accessing newsletter management.
+                </p>
+              </div>
+            )
           ) : activeSection === 'Overview' ? (
 
             <>
 
               {/* PERFORMANCE SNAPSHOT */}
-
-
 
               <section className="ag-dashboard-section">
 
@@ -1786,8 +1573,6 @@ export default function AdminDashboard() {
 
                   </div>
 
-
-
                   <span className="ag-dashboard-updated">
 
                     <TrendingUp size={15} />
@@ -1798,15 +1583,11 @@ export default function AdminDashboard() {
 
                 </div>
 
-
-
                 <div className="ag-dashboard-stat-grid">
 
                   {statistics.map((stat) => {
 
                     const Icon = stat.icon;
-
-
 
                     return (
 
@@ -1826,13 +1607,9 @@ export default function AdminDashboard() {
 
                           </div>
 
-
-
                           <ArrowUpRight size={17} />
 
                         </div>
-
-
 
                         <strong>{stat.value}</strong>
 
@@ -1850,17 +1627,11 @@ export default function AdminDashboard() {
 
               </section>
 
-
-
               {/* LOWER DASHBOARD GRID */}
-
-
 
               <section className="ag-dashboard-lower-grid">
 
                 {/* QUICK ACCESS */}
-
-
 
                 <div className="ag-dashboard-panel">
 
@@ -1876,15 +1647,11 @@ export default function AdminDashboard() {
 
                   </div>
 
-
-
                   <div className="ag-dashboard-quick-links">
 
                     {quickLinks.map((item) => {
 
                       const Icon = item.icon;
-
-
 
                       return (
 
@@ -1910,8 +1677,6 @@ export default function AdminDashboard() {
 
                           </div>
 
-
-
                           <div>
 
                             <strong>{item.label}</strong>
@@ -1919,8 +1684,6 @@ export default function AdminDashboard() {
                             <span>{item.description}</span>
 
                           </div>
-
-
 
                           <ChevronRight size={17} />
 
@@ -1934,11 +1697,7 @@ export default function AdminDashboard() {
 
                 </div>
 
-
-
                 {/* RECENT ACTIVITY */}
-
-
 
                 <div className="ag-dashboard-panel">
 
@@ -1954,8 +1713,6 @@ export default function AdminDashboard() {
 
                   </div>
 
-
-
                   <div className="ag-dashboard-activities">
 
                     {activities.map((activity) => (
@@ -1969,8 +1726,6 @@ export default function AdminDashboard() {
                       >
 
                         <div className="ag-dashboard-activity-dot" />
-
-
 
                         <div>
 
@@ -1998,8 +1753,6 @@ export default function AdminDashboard() {
 
             /* OTHER CMS MODULES */
 
-
-
             <section className="ag-dashboard-panel ag-dashboard-placeholder">
 
               <div className="ag-dashboard-placeholder-icon">
@@ -2008,13 +1761,9 @@ export default function AdminDashboard() {
 
               </div>
 
-
-
               <span>CMS MODULE</span>
 
               <h3>{activeSection}</h3>
-
-
 
               <p>
 
@@ -2025,8 +1774,6 @@ export default function AdminDashboard() {
                 database.
 
               </p>
-
-
 
               <button
 
@@ -2046,11 +1793,7 @@ export default function AdminDashboard() {
 
           )}
 
-
-
           {/* FOOTER */}
-
-
 
           <footer className="ag-dashboard-footer">
 
@@ -2059,8 +1802,6 @@ export default function AdminDashboard() {
               © {new Date().getFullYear()} Alkebulan Global LLC.
 
             </span>
-
-
 
             <span>
 

@@ -1,796 +1,1008 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+
 import {
-  Newspaper,
+  Mail,
   Users,
   Send,
   Plus,
   RefreshCw,
-  Search,
-  Eye,
-  Pencil,
+  RotateCcw,
   Trash2,
+  Edit,
+  Eye,
   X,
-  Save,
-  Mail,
-  CheckCircle2,
+  Search,
+  CheckCircle,
   AlertCircle,
-  Clock,
   FileText,
   Loader2,
-  UserX,
-  BarChart3,
+  Ban,
 } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+
 import './Newsletter.css';
 
-const API_URL = (
-  import.meta.env.VITE_API_URL || 'http://localhost:5000'
-).replace(/\/+$/, '');
+const API_BASE_URL = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
+const API_URL = `${API_BASE_URL}/api/newsletter`;
 
-const EMPTY_CAMPAIGN = {
+// While a campaign is sending, refresh progress this often.
+const SENDING_POLL_MS = 10000;
+// Must match STALE_SENDING_MS in newsletterController.js.
+const STALE_SENDING_MS = 10 * 60 * 1000;
+
+const SENDABLE_STATUSES = ['subscribed', 'active'];
+
+const initialForm = {
   name: '',
   subject: '',
   preview_text: '',
   content: '',
+  images: [],
+  sections: [],
 };
 
-const formatDate = (value) => {
-  if (!value) return '—';
-
-  const date = new Date(value);
-
-  return Number.isNaN(date.getTime())
-    ? '—'
-    : date.toLocaleString(undefined, {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
+const formatDate = (date) => {
+  if (!date) return 'Not available';
+  const parsed = new Date(date);
+  return Number.isNaN(parsed.getTime()) ? 'Not available' : parsed.toLocaleString();
 };
 
-const getStatusClass = (status = 'draft') =>
-  `newsletter-status newsletter-status-${String(status).toLowerCase()}`;
+const formatStatus = (status) =>
+  String(status || 'unknown')
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 
-export default function Newsletter() {
-  const [activeTab, setActiveTab] = useState('overview');
+const getStatusClass = (status) => {
+  switch (status) {
+    case 'subscribed':
+    case 'active':
+    case 'sent':
+      return 'success';
+    case 'sending':
+      return 'sending';
+    case 'failed':
+    case 'unsubscribed':
+      return 'danger';
+    case 'draft':
+    case 'pending':
+      return 'pending';
+    default:
+      return 'neutral';
+  }
+};
+
+const isStaleSending = (campaign) =>
+  campaign.status === 'sending' &&
+  (!campaign.updated_at ||
+    Date.now() - new Date(campaign.updated_at).getTime() > STALE_SENDING_MS);
+
+const canResume = (campaign) =>
+  Boolean(campaign.is_published) &&
+  (campaign.status === 'failed' || isStaleSending(campaign));
+
+const canDelete = (campaign) =>
+  campaign.status !== 'sending' || isStaleSending(campaign);
+
+const imageSrc = (image) =>
+  typeof image === 'string'
+    ? image
+    : image?.url || image?.src || image?.publicUrl || '';
+
+export default function Newsletter({ accessToken }) {
   const [subscribers, setSubscribers] = useState([]);
   const [campaigns, setCampaigns] = useState([]);
-  const [campaignForm, setCampaignForm] = useState(EMPTY_CAMPAIGN);
-  const [editingId, setEditingId] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [actionId, setActionId] = useState(null);
-  const [message, setMessage] = useState('');
+  const [actionLoading, setActionLoading] = useState('');
   const [error, setError] = useState('');
-  const [previewOpen, setPreviewOpen] = useState(false);
+  const [success, setSuccess] = useState('');
+  const [search, setSearch] = useState('');
+  const [activeTab, setActiveTab] = useState('campaigns');
+  const [showEditor, setShowEditor] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [selectedCampaign, setSelectedCampaign] = useState(null);
+  const [form, setForm] = useState(initialForm);
 
-  const notify = (text, isError = false) => {
-    setMessage(isError ? '' : text);
-    setError(isError ? text : '');
-  };
+  const successTimer = useRef(null);
 
-  const apiRequest = useCallback(async (path, options = {}) => {
-    const {
-      data: { session },
-      error: sessionError,
-    } = await supabase.auth.getSession();
+  // ========================================
+  // API REQUEST HELPER
+  // ========================================
 
-    if (sessionError) throw sessionError;
+  const apiRequest = useCallback(
+    async (path, options = {}) => {
+      if (!accessToken) {
+        throw new Error('Administrator session missing. Please sign in again.');
+      }
 
-    if (!session?.access_token) {
-      throw new Error('Your session has expired. Please sign in again.');
-    }
-
-    const response = await fetch(
-      `${API_URL}/api/newsletter/admin${path}`,
-      {
+      const response = await fetch(`${API_URL}${path}`, {
         ...options,
         headers: {
-          Authorization: `Bearer ${session.access_token}`,
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
           ...options.headers,
         },
+      });
+
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(result.message || `Request failed (${response.status})`);
       }
-    );
 
-    const result = await response.json().catch(() => ({}));
+      return result;
+    },
+    [accessToken]
+  );
 
-    if (!response.ok || result.success === false) {
-      throw new Error(
-        result.message || `Request failed (${response.status}).`
-      );
-    }
+  // ========================================
+  // LOAD DASHBOARD DATA
+  // ========================================
 
-    return result;
-  }, []);
+  const loadDashboard = useCallback(
+    async (showLoader = true) => {
+      try {
+        if (showLoader) setLoading(true);
+        setError('');
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    setError('');
+        const [subscriberResult, campaignResult] = await Promise.all([
+          apiRequest('/admin/subscribers'),
+          apiRequest('/admin/campaigns'),
+        ]);
 
-    try {
-      const [subscriberResult, campaignResult] = await Promise.all([
-        apiRequest('/subscribers'),
-        apiRequest('/campaigns'),
-      ]);
-
-      setSubscribers(subscriberResult.subscribers || []);
-      setCampaigns(campaignResult.campaigns || []);
-    } catch (err) {
-      notify(err.message || 'Unable to load newsletter information.', true);
-    } finally {
-      setLoading(false);
-    }
-  }, [apiRequest]);
+        setSubscribers(
+          Array.isArray(subscriberResult.subscribers)
+            ? subscriberResult.subscribers
+            : []
+        );
+        setCampaigns(
+          Array.isArray(campaignResult.campaigns) ? campaignResult.campaigns : []
+        );
+      } catch (err) {
+        console.error('Newsletter dashboard error:', err);
+        setError(err.message);
+      } finally {
+        if (showLoader) setLoading(false);
+      }
+    },
+    [apiRequest]
+  );
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    loadDashboard();
+  }, [loadDashboard]);
 
-  const activeSubscribers = useMemo(
-    () =>
-      subscribers.filter((subscriber) =>
-        ['active', 'subscribed'].includes(
-          String(subscriber.status).toLowerCase()
-        )
-      ),
-    [subscribers]
+  // Refresh automatically only while a campaign is being sent.
+  const hasSendingCampaign = campaigns.some(
+    (campaign) => campaign.status === 'sending'
   );
 
-  const filteredSubscribers = useMemo(() => {
-    const term = searchTerm.trim().toLowerCase();
+  useEffect(() => {
+    if (!hasSendingCampaign) return undefined;
 
-    if (!term) return subscribers;
+    const interval = setInterval(() => loadDashboard(false), SENDING_POLL_MS);
+    return () => clearInterval(interval);
+  }, [hasSendingCampaign, loadDashboard]);
 
-    return subscribers.filter((subscriber) =>
-      String(subscriber.email || '').toLowerCase().includes(term)
-    );
-  }, [subscribers, searchTerm]);
+  useEffect(() => () => clearTimeout(successTimer.current), []);
 
-  const publishedCampaigns = campaigns.filter(
-    (campaign) =>
-      campaign.is_published ||
-      String(campaign.status).toLowerCase() === 'published'
-  );
+  // ========================================
+  // NOTIFICATIONS
+  // ========================================
 
-  const updateField = (event) => {
+  const notifySuccess = (message) => {
+    setSuccess(message);
+    setError('');
+    clearTimeout(successTimer.current);
+    successTimer.current = setTimeout(() => setSuccess(''), 5000);
+  };
+
+  const notifyError = (message) => {
+    setError(message);
+    setSuccess('');
+  };
+
+  // ========================================
+  // FORM HANDLING
+  // ========================================
+
+  const handleChange = (event) => {
     const { name, value } = event.target;
-
-    setCampaignForm((current) => ({
-      ...current,
-      [name]: value,
-    }));
+    setForm((previous) => ({ ...previous, [name]: value }));
   };
 
-  const openNewCampaign = () => {
-    setCampaignForm(EMPTY_CAMPAIGN);
+  const openCreateEditor = () => {
     setEditingId(null);
-    setPreviewOpen(false);
-    setActiveTab('create');
-    notify('');
+    setForm(initialForm);
+    setShowEditor(true);
   };
 
-  const editCampaign = (campaign) => {
-    setCampaignForm({
+  const openEditEditor = (campaign) => {
+    if (campaign.status !== 'draft') {
+      notifyError('Only draft campaigns can be edited.');
+      return;
+    }
+
+    setEditingId(campaign.id);
+    setForm({
       name: campaign.name || '',
       subject: campaign.subject || '',
       preview_text: campaign.preview_text || '',
       content: campaign.content || '',
+      images: Array.isArray(campaign.images) ? campaign.images : [],
+      sections: Array.isArray(campaign.sections) ? campaign.sections : [],
     });
-
-    setEditingId(campaign.id);
-    setPreviewOpen(false);
-    setActiveTab('create');
-    notify('');
+    setShowEditor(true);
   };
+
+  const closeEditor = () => {
+    if (saving) return;
+    setShowEditor(false);
+    setEditingId(null);
+    setForm(initialForm);
+  };
+
+  // ========================================
+  // CREATE / UPDATE CAMPAIGN
+  // ========================================
 
   const saveCampaign = async (event) => {
     event.preventDefault();
 
-    if (
-      !campaignForm.name.trim() ||
-      !campaignForm.subject.trim() ||
-      !campaignForm.content.trim()
-    ) {
-      notify('Please enter the campaign name, subject and content.', true);
+    if (!form.name.trim()) {
+      notifyError('Campaign name is required.');
       return;
     }
 
-    setSaving(true);
-    notify('');
+    if (!form.subject.trim()) {
+      notifyError('Email subject is required.');
+      return;
+    }
+
+    if (!form.content.trim() && !form.sections.length && !form.images.length) {
+      notifyError('Add some campaign content before saving.');
+      return;
+    }
 
     try {
-      const result = await apiRequest(
-        editingId ? `/campaigns/${editingId}` : '/campaigns',
-        {
-          method: editingId ? 'PUT' : 'POST',
-          body: JSON.stringify(campaignForm),
-        }
+      setSaving(true);
+
+      const path = editingId ? `/admin/campaigns/${editingId}` : '/admin/campaigns';
+
+      const result = await apiRequest(path, {
+        method: editingId ? 'PATCH' : 'POST',
+        body: JSON.stringify(form),
+      });
+
+      notifySuccess(
+        editingId ? 'Campaign updated successfully.' : 'Campaign created successfully.'
       );
 
-      notify(result.message || 'Campaign saved successfully.');
-      setCampaignForm(EMPTY_CAMPAIGN);
+      setShowEditor(false);
       setEditingId(null);
-      setActiveTab('history');
-      await loadData();
+      setForm(initialForm);
+
+      if (result.campaign) setSelectedCampaign(result.campaign);
+
+      await loadDashboard(false);
     } catch (err) {
-      notify(err.message || 'Unable to save campaign.', true);
+      notifyError(err.message);
     } finally {
       setSaving(false);
     }
   };
 
-  const campaignAction = async (campaign, action) => {
-    const labels = {
-      publish: 'publish this campaign',
-      test: 'send a test email for this campaign',
-      send: 'send this campaign to all active subscribers',
-      delete: 'delete this campaign',
-    };
+  // ========================================
+  // CAMPAIGN ACTIONS
+  // ========================================
 
-    if (!window.confirm(`Are you sure you want to ${labels[action]}?`)) {
-      return;
-    }
-
-    setActionId(`${campaign.id}-${action}`);
-    notify('');
-
+  const runCampaignAction = async (campaign, action, path, fallbackMessage) => {
     try {
-      let result;
+      setActionLoading(`${action}-${campaign.id}`);
 
-      if (action === 'delete') {
-        result = await apiRequest(`/campaigns/${campaign.id}`, {
-          method: 'DELETE',
-        });
-      } else {
-        result = await apiRequest(
-          `/campaigns/${campaign.id}/${action}`,
-          { method: 'POST', body: JSON.stringify({}) }
-        );
-      }
+      const result = await apiRequest(path, {
+        method: 'POST',
+        body: JSON.stringify({}),
+      });
 
-      notify(result.message || 'Action completed successfully.');
-      await loadData();
+      notifySuccess(result.message || fallbackMessage);
+      await loadDashboard(false);
     } catch (err) {
-      notify(err.message || 'The action could not be completed.', true);
+      notifyError(err.message);
     } finally {
-      setActionId(null);
+      setActionLoading('');
     }
   };
 
-  const unsubscribeSubscriber = async (subscriber) => {
-    if (
-      !window.confirm(
-        `Unsubscribe ${subscriber.email} from the newsletter?`
-      )
-    ) {
-      return;
-    }
+  const sendTestEmail = (campaign) =>
+    runCampaignAction(
+      campaign,
+      'test',
+      `/admin/campaigns/${campaign.id}/test`,
+      'Test email sent successfully.'
+    );
 
-    setActionId(subscriber.id);
-    notify('');
+  const publishCampaign = (campaign) => {
+    const confirmed = window.confirm(
+      `Publish "${campaign.name}" and send it to all active subscribers? This action cannot be undone.`
+    );
+    if (!confirmed) return;
 
-    try {
-      const result = await apiRequest(
-        `/subscribers/${subscriber.id}/unsubscribe`,
-        { method: 'PATCH', body: JSON.stringify({}) }
-      );
-
-      notify(result.message || 'Subscriber unsubscribed.');
-      await loadData();
-    } catch (err) {
-      notify(err.message || 'Unable to unsubscribe this person.', true);
-    } finally {
-      setActionId(null);
-    }
-  };
-
-  const renderCampaignActions = (campaign) => {
-    const busy = (action) => actionId === `${campaign.id}-${action}`;
-
-    return (
-      <div className="newsletter-actions">
-        <button
-          type="button"
-          className="newsletter-icon-button"
-          title="Edit campaign"
-          onClick={() => editCampaign(campaign)}
-        >
-          <Pencil size={16} />
-        </button>
-
-        <button
-          type="button"
-          className="newsletter-icon-button"
-          title="Send test email"
-          disabled={Boolean(actionId)}
-          onClick={() => campaignAction(campaign, 'test')}
-        >
-          {busy('test') ? (
-            <Loader2 className="newsletter-spin" size={16} />
-          ) : (
-            <Mail size={16} />
-          )}
-        </button>
-
-        {!campaign.is_published && (
-          <button
-            type="button"
-            className="newsletter-small-button"
-            disabled={Boolean(actionId)}
-            onClick={() => campaignAction(campaign, 'publish')}
-          >
-            {busy('publish') ? 'Publishing…' : 'Publish'}
-          </button>
-        )}
-
-        {(campaign.is_published ||
-          String(campaign.status).toLowerCase() === 'published') && (
-          <button
-            type="button"
-            className="newsletter-small-button newsletter-send-button"
-            disabled={Boolean(actionId)}
-            onClick={() => campaignAction(campaign, 'send')}
-          >
-            {busy('send') ? (
-              <Loader2 className="newsletter-spin" size={14} />
-            ) : (
-              <Send size={14} />
-            )}
-            Send
-          </button>
-        )}
-
-        <button
-          type="button"
-          className="newsletter-icon-button newsletter-delete-button"
-          title="Delete campaign"
-          disabled={Boolean(actionId)}
-          onClick={() => campaignAction(campaign, 'delete')}
-        >
-          {busy('delete') ? (
-            <Loader2 className="newsletter-spin" size={16} />
-          ) : (
-            <Trash2 size={16} />
-          )}
-        </button>
-      </div>
+    runCampaignAction(
+      campaign,
+      'publish',
+      `/admin/campaigns/${campaign.id}/publish`,
+      'Newsletter publishing has started.'
     );
   };
 
+  const resumeCampaign = (campaign) => {
+    const confirmed = window.confirm(
+      `Resume sending "${campaign.name}"? Subscribers who already received it will be skipped.`
+    );
+    if (!confirmed) return;
+
+    runCampaignAction(
+      campaign,
+      'resume',
+      `/admin/campaigns/${campaign.id}/resume`,
+      'Newsletter delivery has resumed.'
+    );
+  };
+
+  const deleteCampaign = async (campaign) => {
+    const confirmed = window.confirm(
+      `Permanently delete "${campaign.name}"? This also removes its campaign delivery history. This cannot be undone.`
+    );
+    if (!confirmed) return;
+
+    try {
+      setActionLoading(`delete-${campaign.id}`);
+
+      await apiRequest(`/admin/campaigns/${campaign.id}`, { method: 'DELETE' });
+
+      notifySuccess('Campaign deleted successfully.');
+
+      if (selectedCampaign?.id === campaign.id) {
+        setSelectedCampaign(null);
+        setShowPreview(false);
+      }
+
+      await loadDashboard(false);
+    } catch (err) {
+      notifyError(err.message);
+    } finally {
+      setActionLoading('');
+    }
+  };
+
+  // ========================================
+  // ADMIN UNSUBSCRIBE
+  // ========================================
+
+  const unsubscribeUser = async (subscriber) => {
+    const confirmed = window.confirm(`Unsubscribe ${subscriber.email}?`);
+    if (!confirmed) return;
+
+    try {
+      setActionLoading(`unsubscribe-${subscriber.id}`);
+
+      await apiRequest(`/admin/subscribers/${subscriber.id}/unsubscribe`, {
+        method: 'POST',
+        body: JSON.stringify({}),
+      });
+
+      notifySuccess('Subscriber successfully unsubscribed.');
+      await loadDashboard(false);
+    } catch (err) {
+      notifyError(err.message);
+    } finally {
+      setActionLoading('');
+    }
+  };
+
+  // ========================================
+  // PREVIEW CAMPAIGN
+  // ========================================
+
+  const previewCampaign = (campaign) => {
+    setSelectedCampaign(campaign);
+    setShowPreview(true);
+  };
+
+  // ========================================
+  // FILTERING & STATISTICS
+  // ========================================
+
+  const query = search.trim().toLowerCase();
+
+  const filteredSubscribers = subscribers.filter((subscriber) =>
+    String(subscriber.email || '').toLowerCase().includes(query)
+  );
+
+  const filteredCampaigns = campaigns.filter(
+    (campaign) =>
+      String(campaign.name || '').toLowerCase().includes(query) ||
+      String(campaign.subject || '').toLowerCase().includes(query)
+  );
+
+  const activeSubscribers = subscribers.filter((subscriber) =>
+    SENDABLE_STATUSES.includes(subscriber.status)
+  ).length;
+
+  const unsubscribedCount = subscribers.filter(
+    (subscriber) => subscriber.status === 'unsubscribed'
+  ).length;
+
+  const sentCampaigns = campaigns.filter((campaign) => campaign.status === 'sent').length;
+  const draftCampaigns = campaigns.filter((campaign) => campaign.status === 'draft').length;
+
+  const isBusy = (key) => actionLoading === key;
+
+  // ========================================
+  // LOADING STATE
+  // ========================================
+
   if (loading) {
     return (
-      <div className="newsletter-loading">
-        <Loader2 className="newsletter-spin" size={30} />
-        <p>Loading newsletter workspace...</p>
+      <div className="newsletter-dashboard">
+        <p>
+          <Loader2 size={18} className="spin" /> Loading newsletter dashboard...
+        </p>
       </div>
     );
   }
 
+  // ========================================
+  // MAIN DASHBOARD
+  // ========================================
+
   return (
-    <div className="newsletter-page">
-      <div className="newsletter-heading">
+    <div className="newsletter-dashboard">
+      {/* HEADER */}
+      <div className="newsletter-header">
         <div>
-          <span className="newsletter-eyebrow">EMAIL MARKETING</span>
+          <span className="newsletter-eyebrow">COMMUNICATION MANAGEMENT</span>
           <h1>Newsletter Management</h1>
-          <p>Manage subscribers, create campaigns and communicate with your audience.</p>
+          <p>Manage subscribers, create campaigns and communicate with your community.</p>
         </div>
 
-        <button
-          type="button"
-          className="newsletter-primary-button"
-          onClick={openNewCampaign}
-        >
-          <Plus size={18} />
-          Create Newsletter
-        </button>
-      </div>
-
-      {(message || error) && (
-        <div className={`newsletter-alert ${error ? 'is-error' : 'is-success'}`}>
-          {error ? <AlertCircle size={18} /> : <CheckCircle2 size={18} />}
-          <span>{error || message}</span>
+        <div className="newsletter-header-actions">
           <button
             type="button"
-            onClick={() => {
-              setMessage('');
-              setError('');
-            }}
-            aria-label="Dismiss message"
+            className="newsletter-secondary-btn"
+            onClick={() => loadDashboard()}
           >
-            <X size={17} />
+            <RefreshCw size={16} />
+            Refresh
+          </button>
+
+          <button
+            type="button"
+            className="newsletter-primary-btn"
+            onClick={openCreateEditor}
+          >
+            <Plus size={17} />
+            Create Campaign
+          </button>
+        </div>
+      </div>
+
+      {/* ALERTS */}
+      {error && (
+        <div className="newsletter-alert error" role="alert">
+          <AlertCircle size={18} />
+          <span>{error}</span>
+          <button type="button" onClick={() => setError('')} aria-label="Dismiss error">
+            <X size={16} />
           </button>
         </div>
       )}
 
+      {success && (
+        <div className="newsletter-alert success" role="status">
+          <CheckCircle size={18} />
+          <span>{success}</span>
+          <button type="button" onClick={() => setSuccess('')} aria-label="Dismiss success">
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
+      {/* STATISTICS */}
+      <div className="newsletter-stats-grid">
+        <div className="newsletter-stat-card">
+          <div className="newsletter-stat-icon blue">
+            <Users size={22} />
+          </div>
+          <div>
+            <span>Total Subscribers</span>
+            <h2>{subscribers.length}</h2>
+          </div>
+        </div>
+
+        <div className="newsletter-stat-card">
+          <div className="newsletter-stat-icon green">
+            <CheckCircle size={22} />
+          </div>
+          <div>
+            <span>Active Subscribers</span>
+            <h2>{activeSubscribers}</h2>
+          </div>
+        </div>
+
+        <div className="newsletter-stat-card">
+          <div className="newsletter-stat-icon orange">
+            <Ban size={22} />
+          </div>
+          <div>
+            <span>Unsubscribed</span>
+            <h2>{unsubscribedCount}</h2>
+          </div>
+        </div>
+
+        <div className="newsletter-stat-card">
+          <div className="newsletter-stat-icon purple">
+            <Send size={22} />
+          </div>
+          <div>
+            <span>Campaigns Sent</span>
+            <h2>{sentCampaigns}</h2>
+          </div>
+        </div>
+
+        <div className="newsletter-stat-card">
+          <div className="newsletter-stat-icon yellow">
+            <FileText size={22} />
+          </div>
+          <div>
+            <span>Draft Campaigns</span>
+            <h2>{draftCampaigns}</h2>
+          </div>
+        </div>
+      </div>
+
+      {/* TABS */}
       <div className="newsletter-tabs">
         <button
           type="button"
-          className={activeTab === 'overview' ? 'active' : ''}
-          onClick={() => setActiveTab('overview')}
+          className={activeTab === 'campaigns' ? 'active' : ''}
+          onClick={() => {
+            setActiveTab('campaigns');
+            setSearch('');
+          }}
         >
-          <BarChart3 size={17} /> Overview
+          <Mail size={17} />
+          Campaigns ({campaigns.length})
         </button>
 
         <button
           type="button"
           className={activeTab === 'subscribers' ? 'active' : ''}
-          onClick={() => setActiveTab('subscribers')}
+          onClick={() => {
+            setActiveTab('subscribers');
+            setSearch('');
+          }}
         >
-          <Users size={17} /> Subscribers
-        </button>
-
-        <button
-          type="button"
-          className={activeTab === 'create' ? 'active' : ''}
-          onClick={openNewCampaign}
-        >
-          <Plus size={17} /> Create Newsletter
-        </button>
-
-        <button
-          type="button"
-          className={activeTab === 'history' ? 'active' : ''}
-          onClick={() => setActiveTab('history')}
-        >
-          <Clock size={17} /> Campaign History
-        </button>
-
-        <button
-          type="button"
-          className="newsletter-refresh-tab"
-          onClick={loadData}
-          title="Refresh data"
-        >
-          <RefreshCw size={17} />
+          <Users size={17} />
+          Subscribers ({subscribers.length})
         </button>
       </div>
 
-      {activeTab === 'overview' && (
-        <section className="newsletter-section">
-          <div className="newsletter-stat-grid">
-            <div className="newsletter-stat-card">
-              <div className="newsletter-stat-icon"><Users size={21} /></div>
-              <span>Total subscribers</span>
-              <strong>{subscribers.length}</strong>
-              <small>All newsletter records</small>
-            </div>
+      {/* SEARCH */}
+      <div className="newsletter-toolbar">
+        <div className="newsletter-search">
+          <Search size={18} />
+          <input
+            type="search"
+            placeholder={
+              activeTab === 'campaigns'
+                ? 'Search campaigns...'
+                : 'Search subscribers by email...'
+            }
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+          />
+        </div>
 
-            <div className="newsletter-stat-card">
-              <div className="newsletter-stat-icon"><UserX size={21} /></div>
-              <span>Active subscribers</span>
-              <strong>{activeSubscribers.length}</strong>
-              <small>Eligible to receive campaigns</small>
-            </div>
+        <span className="newsletter-result-count">
+          {activeTab === 'campaigns' ? filteredCampaigns.length : filteredSubscribers.length}{' '}
+          results
+        </span>
+      </div>
 
-            <div className="newsletter-stat-card">
-              <div className="newsletter-stat-icon"><Newspaper size={21} /></div>
-              <span>Total campaigns</span>
-              <strong>{campaigns.length}</strong>
-              <small>Saved newsletter campaigns</small>
-            </div>
+      {/* CAMPAIGNS */}
+      {activeTab === 'campaigns' && (
+        <div className="newsletter-table-wrapper">
+          <table className="newsletter-table">
+            <thead>
+              <tr>
+                <th>Campaign</th>
+                <th>Subject</th>
+                <th>Status</th>
+                <th>Recipients</th>
+                <th>Sent</th>
+                <th>Failed</th>
+                <th>Created</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
 
-            <div className="newsletter-stat-card">
-              <div className="newsletter-stat-icon"><CheckCircle2 size={21} /></div>
-              <span>Published campaigns</span>
-              <strong>{publishedCampaigns.length}</strong>
-              <small>Campaigns marked as published</small>
-            </div>
-          </div>
+            <tbody>
+              {filteredCampaigns.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="newsletter-empty">
+                    <Mail size={30} />
+                    <strong>No campaigns found</strong>
+                    <span>Create your first newsletter campaign.</span>
+                  </td>
+                </tr>
+              ) : (
+                filteredCampaigns.map((campaign) => (
+                  <tr key={campaign.id}>
+                    <td>
+                      <strong>{campaign.name}</strong>
+                    </td>
+                    <td>{campaign.subject}</td>
+                    <td>
+                      <span className={`newsletter-status ${getStatusClass(campaign.status)}`}>
+                        {formatStatus(campaign.status)}
+                      </span>
+                      {campaign.last_error && campaign.status !== 'draft' && (
+                        <small className="newsletter-error-hint" title={campaign.last_error}>
+                          {' '}
+                          <AlertCircle size={13} />
+                        </small>
+                      )}
+                    </td>
+                    <td>{campaign.recipient_count ?? 0}</td>
+                    <td>{campaign.sent_count ?? 0}</td>
+                    <td>{campaign.failed_count ?? 0}</td>
+                    <td>{formatDate(campaign.created_at)}</td>
+                    <td>
+                      <div className="newsletter-actions">
+                        <button
+                          type="button"
+                          title="Preview"
+                          aria-label="Preview"
+                          onClick={() => previewCampaign(campaign)}
+                        >
+                          <Eye size={16} />
+                        </button>
 
-          <div className="newsletter-panel">
-            <div className="newsletter-panel-heading">
+                        {campaign.status === 'draft' && (
+                          <>
+                            <button
+                              type="button"
+                              title="Edit"
+                              aria-label="Edit"
+                              onClick={() => openEditEditor(campaign)}
+                            >
+                              <Edit size={16} />
+                            </button>
+
+                            <button
+                              type="button"
+                              title="Send test email"
+                              aria-label="Send test email"
+                              disabled={Boolean(actionLoading)}
+                              onClick={() => sendTestEmail(campaign)}
+                            >
+                              {isBusy(`test-${campaign.id}`) ? (
+                                <Loader2 size={16} className="spin" />
+                              ) : (
+                                <Mail size={16} />
+                              )}
+                            </button>
+
+                            <button
+                              type="button"
+                              title="Publish campaign"
+                              aria-label="Publish campaign"
+                              disabled={Boolean(actionLoading)}
+                              onClick={() => publishCampaign(campaign)}
+                            >
+                              {isBusy(`publish-${campaign.id}`) ? (
+                                <Loader2 size={16} className="spin" />
+                              ) : (
+                                <Send size={16} />
+                              )}
+                            </button>
+                          </>
+                        )}
+
+                        {canResume(campaign) && (
+                          <button
+                            type="button"
+                            title="Resume sending"
+                            aria-label="Resume sending"
+                            disabled={Boolean(actionLoading)}
+                            onClick={() => resumeCampaign(campaign)}
+                          >
+                            {isBusy(`resume-${campaign.id}`) ? (
+                              <Loader2 size={16} className="spin" />
+                            ) : (
+                              <RotateCcw size={16} />
+                            )}
+                          </button>
+                        )}
+
+                        {canDelete(campaign) && (
+                          <button
+                            type="button"
+                            title="Delete campaign"
+                            aria-label="Delete campaign"
+                            className="delete"
+                            disabled={Boolean(actionLoading)}
+                            onClick={() => deleteCampaign(campaign)}
+                          >
+                            {isBusy(`delete-${campaign.id}`) ? (
+                              <Loader2 size={16} className="spin" />
+                            ) : (
+                              <Trash2 size={16} />
+                            )}
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* SUBSCRIBERS */}
+      {activeTab === 'subscribers' && (
+        <div className="newsletter-table-wrapper">
+          <table className="newsletter-table">
+            <thead>
+              <tr>
+                <th>Email Address</th>
+                <th>Status</th>
+                <th>Subscribed</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {filteredSubscribers.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="newsletter-empty">
+                    <Users size={30} />
+                    <strong>No subscribers found</strong>
+                    <span>Subscribers will appear here when they sign up.</span>
+                  </td>
+                </tr>
+              ) : (
+                filteredSubscribers.map((subscriber) => (
+                  <tr key={subscriber.id}>
+                    <td>
+                      <strong>{subscriber.email}</strong>
+                    </td>
+                    <td>
+                      <span className={`newsletter-status ${getStatusClass(subscriber.status)}`}>
+                        {formatStatus(subscriber.status)}
+                      </span>
+                    </td>
+                    <td>{formatDate(subscriber.created_at)}</td>
+                    <td>
+                      {SENDABLE_STATUSES.includes(subscriber.status) && (
+                        <button
+                          type="button"
+                          className="newsletter-unsubscribe-btn"
+                          disabled={isBusy(`unsubscribe-${subscriber.id}`)}
+                          onClick={() => unsubscribeUser(subscriber)}
+                        >
+                          {isBusy(`unsubscribe-${subscriber.id}`) ? (
+                            <Loader2 size={15} className="spin" />
+                          ) : (
+                            <Ban size={15} />
+                          )}
+                          Unsubscribe
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* CAMPAIGN EDITOR */}
+      {showEditor && (
+        <div className="newsletter-modal-overlay">
+          <div
+            className="newsletter-modal newsletter-editor"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="newsletter-editor-title"
+          >
+            <div className="newsletter-modal-header">
               <div>
-                <h2>Recent campaigns</h2>
-                <p>Your latest newsletter activity</p>
+                <h2 id="newsletter-editor-title">
+                  {editingId ? 'Edit Campaign' : 'Create Newsletter Campaign'}
+                </h2>
+                <p>Prepare your newsletter for your subscribers.</p>
               </div>
-              <button
-                type="button"
-                className="newsletter-text-button"
-                onClick={() => setActiveTab('history')}
-              >
-                View all
+
+              <button type="button" onClick={closeEditor} aria-label="Close editor">
+                <X size={21} />
               </button>
             </div>
 
-            <CampaignTable
-              campaigns={campaigns.slice(0, 5)}
-              renderActions={renderCampaignActions}
-              onEdit={editCampaign}
-            />
-          </div>
-        </section>
-      )}
-
-      {activeTab === 'subscribers' && (
-        <section className="newsletter-panel">
-          <div className="newsletter-panel-heading newsletter-subscriber-heading">
-            <div>
-              <h2>Newsletter subscribers</h2>
-              <p>{activeSubscribers.length} active subscribers</p>
-            </div>
-
-            <div className="newsletter-search">
-              <Search size={17} />
-              <input
-                type="search"
-                placeholder="Search email address..."
-                value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="newsletter-table-wrap">
-            <table className="newsletter-table">
-              <thead>
-                <tr>
-                  <th>Email address</th>
-                  <th>Date subscribed</th>
-                  <th>Status</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredSubscribers.length === 0 ? (
-                  <tr>
-                    <td colSpan="4" className="newsletter-empty">
-                      No subscribers found.
-                    </td>
-                  </tr>
-                ) : (
-                  filteredSubscribers.map((subscriber) => (
-                    <tr key={subscriber.id}>
-                      <td className="newsletter-email-cell">
-                        <Mail size={16} />
-                        {subscriber.email}
-                      </td>
-                      <td>{formatDate(subscriber.created_at || subscriber.subscribed_at)}</td>
-                      <td>
-                        <span className={getStatusClass(subscriber.status)}>
-                          {subscriber.status || 'unknown'}
-                        </span>
-                      </td>
-                      <td>
-                        {['active', 'subscribed'].includes(
-                          String(subscriber.status).toLowerCase()
-                        ) ? (
-                          <button
-                            type="button"
-                            className="newsletter-unsubscribe-button"
-                            disabled={Boolean(actionId)}
-                            onClick={() => unsubscribeSubscriber(subscriber)}
-                          >
-                            {actionId === subscriber.id ? (
-                              <Loader2 className="newsletter-spin" size={14} />
-                            ) : (
-                              <UserX size={14} />
-                            )}
-                            Unsubscribe
-                          </button>
-                        ) : (
-                          <span className="newsletter-muted">—</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      )}
-
-      {activeTab === 'create' && (
-        <section className="newsletter-editor-layout">
-          <form className="newsletter-panel newsletter-editor" onSubmit={saveCampaign}>
-            <div className="newsletter-panel-heading">
-              <div>
-                <h2>{editingId ? 'Edit campaign' : 'Create a newsletter'}</h2>
-                <p>Prepare the message you want to send to your subscribers.</p>
+            <form onSubmit={saveCampaign}>
+              <div className="newsletter-form-group">
+                <label htmlFor="campaign-name">Campaign Name</label>
+                <input
+                  id="campaign-name"
+                  name="name"
+                  value={form.name}
+                  onChange={handleChange}
+                  placeholder="e.g. November Newsletter"
+                  required
+                />
               </div>
-              {editingId && (
-                <span className="newsletter-editing-label">Editing campaign</span>
+
+              <div className="newsletter-form-group">
+                <label htmlFor="campaign-subject">Email Subject</label>
+                <input
+                  id="campaign-subject"
+                  name="subject"
+                  value={form.subject}
+                  onChange={handleChange}
+                  placeholder="Enter email subject"
+                  required
+                />
+              </div>
+
+              <div className="newsletter-form-group">
+                <label htmlFor="campaign-preview">Preview Text</label>
+                <input
+                  id="campaign-preview"
+                  name="preview_text"
+                  value={form.preview_text}
+                  onChange={handleChange}
+                  placeholder="A short summary shown in the inbox"
+                />
+              </div>
+
+              <div className="newsletter-form-group">
+                <label htmlFor="campaign-content">Newsletter Content</label>
+                <textarea
+                  id="campaign-content"
+                  name="content"
+                  value={form.content}
+                  onChange={handleChange}
+                  rows={12}
+                  placeholder="Write your newsletter content here..."
+                />
+              </div>
+
+              <div className="newsletter-form-note">
+                <AlertCircle size={16} />
+                This editor currently supports text content. Your existing template
+                service is used to generate the email layout.
+              </div>
+
+              <div className="newsletter-modal-actions">
+                <button
+                  type="button"
+                  className="newsletter-secondary-btn"
+                  onClick={closeEditor}
+                  disabled={saving}
+                >
+                  Cancel
+                </button>
+
+                <button type="submit" className="newsletter-primary-btn" disabled={saving}>
+                  {saving ? (
+                    <>
+                      <Loader2 size={17} className="spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle size={17} />
+                      {editingId ? 'Save Changes' : 'Create Campaign'}
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* CAMPAIGN PREVIEW */}
+      {showPreview && selectedCampaign && (
+        <div className="newsletter-modal-overlay">
+          <div
+            className="newsletter-modal newsletter-preview"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="newsletter-preview-title"
+          >
+            <div className="newsletter-modal-header">
+              <div>
+                <h2 id="newsletter-preview-title">Campaign Preview</h2>
+                <p>{selectedCampaign.name}</p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowPreview(false)}
+                aria-label="Close preview"
+              >
+                <X size={21} />
+              </button>
+            </div>
+
+            <div className="newsletter-preview-content">
+              <div className="newsletter-preview-meta">
+                <strong>Subject:</strong>
+                <span>{selectedCampaign.subject}</span>
+              </div>
+
+              {selectedCampaign.preview_text && (
+                <div className="newsletter-preview-meta">
+                  <strong>Preview:</strong>
+                  <span>{selectedCampaign.preview_text}</span>
+                </div>
+              )}
+
+              {selectedCampaign.last_error && (
+                <div className="newsletter-preview-meta">
+                  <strong>Last error:</strong>
+                  <span>{selectedCampaign.last_error}</span>
+                </div>
+              )}
+
+              <hr />
+
+              <h2>{selectedCampaign.name}</h2>
+
+              <p className="newsletter-preview-body" style={{ whiteSpace: 'pre-line' }}>
+                {selectedCampaign.content || 'No main content available.'}
+              </p>
+
+              {(Array.isArray(selectedCampaign.sections) ? selectedCampaign.sections : []).map(
+                (section, index) => (
+                  <div key={index}>
+                    {section?.title && <h3>{section.title}</h3>}
+                    <p>{section?.content || section?.text || ''}</p>
+                  </div>
+                )
+              )}
+
+              {(Array.isArray(selectedCampaign.images) ? selectedCampaign.images : []).map(
+                (image, index) => {
+                  const src = imageSrc(image);
+                  if (!src) return null;
+
+                  const alt =
+                    typeof image === 'object' && image?.alt ? image.alt : 'Newsletter image';
+
+                  return <img key={index} src={src} alt={alt} />;
+                }
               )}
             </div>
 
-            <label className="newsletter-field">
-              <span>Campaign name *</span>
-              <input
-                name="name"
-                value={campaignForm.name}
-                onChange={updateField}
-                placeholder="e.g. November Company Newsletter"
-                required
-              />
-            </label>
-
-            <label className="newsletter-field">
-              <span>Email subject *</span>
-              <input
-                name="subject"
-                value={campaignForm.subject}
-                onChange={updateField}
-                placeholder="Enter the email subject"
-                required
-              />
-            </label>
-
-            <label className="newsletter-field">
-              <span>Preview text</span>
-              <input
-                name="preview_text"
-                value={campaignForm.preview_text}
-                onChange={updateField}
-                placeholder="A short summary shown in the recipient's inbox"
-              />
-            </label>
-
-            <label className="newsletter-field">
-              <span>Newsletter content *</span>
-              <textarea
-                name="content"
-                value={campaignForm.content}
-                onChange={updateField}
-                placeholder="Write your newsletter message here..."
-                rows={13}
-                required
-              />
-              <small>
-                Write the main newsletter message. Use plain text for now; your
-                backend will prepare the email layout.
-              </small>
-            </label>
-
-            <div className="newsletter-editor-footer">
+            <div className="newsletter-modal-actions">
               <button
                 type="button"
-                className="newsletter-secondary-button"
-                onClick={() => setPreviewOpen(true)}
+                className="newsletter-secondary-btn"
+                onClick={() => setShowPreview(false)}
               >
-                <Eye size={17} /> Preview
+                Close Preview
               </button>
-
-              <button
-                type="submit"
-                className="newsletter-primary-button"
-                disabled={saving}
-              >
-                {saving ? (
-                  <Loader2 className="newsletter-spin" size={17} />
-                ) : (
-                  <Save size={17} />
-                )}
-                {saving ? 'Saving...' : editingId ? 'Update campaign' : 'Save draft'}
-              </button>
-            </div>
-          </form>
-
-          <aside className="newsletter-editor-aside">
-            <div className="newsletter-tip-card">
-              <div className="newsletter-tip-icon"><FileText size={21} /></div>
-              <h3>Before you publish</h3>
-              <ul>
-                <li>Give your campaign a clear name.</li>
-                <li>Write a useful email subject.</li>
-                <li>Review the message before publishing.</li>
-                <li>Send a test email before sending to subscribers.</li>
-              </ul>
-            </div>
-
-            <div className="newsletter-tip-card newsletter-audience-card">
-              <div className="newsletter-tip-icon"><Users size={21} /></div>
-              <h3>Your audience</h3>
-              <strong>{activeSubscribers.length}</strong>
-              <p>Active subscribers currently eligible for newsletter emails.</p>
-            </div>
-          </aside>
-        </section>
-      )}
-
-      {activeTab === 'history' && (
-        <section className="newsletter-panel">
-          <div className="newsletter-panel-heading">
-            <div>
-              <h2>Campaign history</h2>
-              <p>Manage drafts and review published campaigns.</p>
-            </div>
-          </div>
-
-          <CampaignTable
-            campaigns={campaigns}
-            renderActions={renderCampaignActions}
-            onEdit={editCampaign}
-          />
-        </section>
-      )}
-
-      {previewOpen && (
-        <div
-          className="newsletter-modal-backdrop"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setPreviewOpen(false);
-          }}
-        >
-          <div className="newsletter-preview-modal">
-            <div className="newsletter-preview-header">
-              <div>
-                <span>EMAIL PREVIEW</span>
-                <h2>{campaignForm.subject || 'Your newsletter subject'}</h2>
-              </div>
-              <button
-                type="button"
-                onClick={() => setPreviewOpen(false)}
-                aria-label="Close preview"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            {campaignForm.preview_text && (
-              <p className="newsletter-preview-preheader">
-                {campaignForm.preview_text}
-              </p>
-            )}
-
-            <div className="newsletter-preview-body">
-              <h3>{campaignForm.name || 'Newsletter title'}</h3>
-              <p>{campaignForm.content || 'Your newsletter content will appear here.'}</p>
             </div>
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-function CampaignTable({ campaigns, renderActions }) {
-  return (
-    <div className="newsletter-table-wrap">
-      <table className="newsletter-table">
-        <thead>
-          <tr>
-            <th>Campaign</th>
-            <th>Subject</th>
-            <th>Status</th>
-            <th>Recipients</th>
-            <th>Created</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {campaigns.length === 0 ? (
-            <tr>
-              <td colSpan="6" className="newsletter-empty">
-                No campaigns have been created yet.
-              </td>
-            </tr>
-          ) : (
-            campaigns.map((campaign) => (
-              <tr key={campaign.id}>
-                <td className="newsletter-campaign-name">
-                  <Newspaper size={16} />
-                  {campaign.name || 'Untitled campaign'}
-                </td>
-                <td>{campaign.subject || '—'}</td>
-                <td>
-                  <span className={getStatusClass(
-                    campaign.is_published ? 'published' : campaign.status
-                  )}>
-                    {campaign.is_published ? 'Published' : campaign.status || 'draft'}
-                  </span>
-                </td>
-                <td>{campaign.recipient_count ?? campaign.sent_count ?? 0}</td>
-                <td>{formatDate(campaign.created_at)}</td>
-                <td>{renderActions(campaign)}</td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
     </div>
   );
 }

@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Eye,
@@ -27,6 +26,13 @@ export default function AdminLogin() {
 
   const redirectTo = location.state?.from?.pathname || '/admin/dashboard';
 
+  // Redirect only after React has completed rendering.
+  useEffect(() => {
+    if (!loading && user && admin) {
+      navigate(redirectTo, { replace: true });
+    }
+  }, [loading, user, admin, navigate, redirectTo]);
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError('');
@@ -40,7 +46,7 @@ export default function AdminLogin() {
 
     try {
       await login(email, password);
-      navigate(redirectTo, { replace: true });
+      // Auth state will update and the effect above performs the redirect.
     } catch (err) {
       setError(
         err.message || 'Unable to sign in. Please check your credentials.'
@@ -51,7 +57,6 @@ export default function AdminLogin() {
   };
 
   if (!loading && user && admin) {
-    navigate('/admin/dashboard', { replace: true });
     return null;
   }
 
@@ -61,17 +66,15 @@ export default function AdminLogin() {
       <div className="ag-auth-decoration ag-auth-decoration--two" />
 
       <div className="ag-auth-container">
-
         <Link to="/" className="ag-auth-brand">
           <span className="ag-auth-brand-mark">AG</span>
           <span>
             <strong>ALKEBULAN GLOBAL</strong>
-            <small>STRATEGIC COMMERCE & DEVELOPMENT</small>
+            <small>STRATEGIC COMMERCE &amp; DEVELOPMENT</small>
           </span>
         </Link>
 
         <div className="ag-auth-card">
-
           <div className="ag-auth-icon">
             <LockKeyhole size={25} />
           </div>
@@ -98,7 +101,6 @@ export default function AdminLogin() {
           )}
 
           <form onSubmit={handleSubmit}>
-
             <div className="ag-auth-field">
               <label htmlFor="admin-email">Email address</label>
 
@@ -142,7 +144,7 @@ export default function AdminLogin() {
                 <button
                   type="button"
                   className="ag-auth-password-toggle"
-                  onClick={() => setShowPassword(!showPassword)}
+                  onClick={() => setShowPassword((visible) => !visible)}
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -158,14 +160,12 @@ export default function AdminLogin() {
               {submitting ? 'Signing in...' : 'Sign in securely'}
               {!submitting && <ArrowRight size={18} />}
             </button>
-
           </form>
 
           <div className="ag-auth-security">
             <ShieldCheck size={17} />
             <span>Protected administrator access</span>
           </div>
-
         </div>
 
         <p className="ag-auth-footer">
@@ -176,7 +176,6 @@ export default function AdminLogin() {
         <Link to="/" className="ag-auth-back">
           Return to website
         </Link>
-
       </div>
     </div>
   );

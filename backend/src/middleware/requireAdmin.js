@@ -16,8 +16,16 @@ export const requireAdmin = async (req, res, next) => {
       });
     }
 
-    const token = authorization.slice(7);
+    const token = authorization.slice(7).trim();
 
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication token is missing.',
+      });
+    }
+
+    // Verify the access token with Supabase.
     const {
       data: authData,
       error: authError,
@@ -30,10 +38,16 @@ export const requireAdmin = async (req, res, next) => {
       });
     }
 
-    const { data: admin, error: adminError } = await supabase
+    const authenticatedUser = authData.user;
+
+    // Find the corresponding administrator record.
+    const {
+      data: admin,
+      error: adminError,
+    } = await supabase
       .from('admin_users')
       .select('id, email, full_name, role, status')
-      .eq('id', authData.user.id)
+      .eq('id', authenticatedUser.id)
       .maybeSingle();
 
     if (adminError) {
@@ -45,6 +59,7 @@ export const requireAdmin = async (req, res, next) => {
       });
     }
 
+    // Confirm that the account exists and is approved.
     if (!admin || admin.status !== 'approved') {
       return res.status(403).json({
         success: false,
@@ -52,6 +67,20 @@ export const requireAdmin = async (req, res, next) => {
       });
     }
 
+    // Ensure the administrator record matches the authenticated email.
+    if (
+      !authenticatedUser.email ||
+      !admin.email ||
+      authenticatedUser.email.trim().toLowerCase() !==
+        admin.email.trim().toLowerCase()
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: 'Administrator account verification failed.',
+      });
+    }
+
+    // Allow only recognised administrator roles.
     if (!['owner', 'admin', 'editor'].includes(admin.role)) {
       return res.status(403).json({
         success: false,
@@ -59,7 +88,8 @@ export const requireAdmin = async (req, res, next) => {
       });
     }
 
-    req.user = authData.user;
+    // Attach verified identity and administrator permissions.
+    req.user = authenticatedUser;
     req.admin = admin;
 
     return next();

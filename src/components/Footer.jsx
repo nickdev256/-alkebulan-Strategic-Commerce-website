@@ -1,7 +1,10 @@
 
 import { useState, useRef, useEffect } from 'react';
+
 import { Link, useNavigate } from 'react-router-dom';
+
 import Logo from './Logo.jsx';
+
 import { subPages } from '../navigation.js';
 
 import {
@@ -14,25 +17,37 @@ import {
 
 import Icon from './Icon.jsx';
 import SocialIcon from './SocialIcon.jsx';
+
 import './Footer.css';
 
 const expertise = subPages('Expertise');
 
-
 const directions =
   'https://www.google.com/maps/search/?api=1&query=' +
-  encodeURIComponent('1 World Trade Center, Suite 8500, New York, NY 10007');
+  encodeURIComponent(
+    '1 World Trade Center, Suite 8500, New York, NY 10007'
+  );
+
+const API_BASE_URL = (
+  import.meta.env.VITE_API_URL || 'http://localhost:5000'
+).replace(/\/+$/, '');
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function Footer() {
   const navigate = useNavigate();
 
   const [subscriber, setSubscriber] = useState('');
   const [status, setStatus] = useState('idle');
+  const [feedback, setFeedback] = useState('');
+
   const [showCmsLoader, setShowCmsLoader] = useState(false);
 
   const logoClicks = useRef(0);
   const clickTimer = useRef(null);
   const redirectTimer = useRef(null);
+
+  const subscriptionInProgress = useRef(false);
 
   // Clean up timers when the footer unmounts.
   useEffect(() => {
@@ -73,21 +88,38 @@ export default function Footer() {
   async function handleSubscribe(event) {
     event.preventDefault();
 
+    if (subscriptionInProgress.current) return;
+
     const cleanEmail = subscriber.trim().toLowerCase();
 
-    if (!cleanEmail) return;
+    // Validate empty email.
+    if (!cleanEmail) {
+      setStatus('error');
+      setFeedback('Please enter your email address.');
+      return;
+    }
+
+    // Validate email format.
+    if (
+      cleanEmail.length > 254 ||
+      !EMAIL_PATTERN.test(cleanEmail)
+    ) {
+      setStatus('error');
+      setFeedback('Please enter a valid email address.');
+      return;
+    }
+
+    subscriptionInProgress.current = true;
 
     setStatus('sending');
+    setFeedback('');
 
     try {
-      const API_BASE_URL = (
-        import.meta.env.VITE_API_URL || 'http://localhost:5000'
-      ).replace(/\/+$/, '');
-
       const response = await fetch(`${API_BASE_URL}/api/newsletter`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          Accept: 'application/json',
         },
         body: JSON.stringify({
           email: cleanEmail,
@@ -95,30 +127,73 @@ export default function Footer() {
         }),
       });
 
-      const result = await response.json();
+      const result = await response.json().catch(() => ({}));
 
       if (!response.ok || !result.success) {
-        throw new Error(result.message || 'Subscription failed.');
+        const errorMessage =
+          result.message ||
+          'We could not complete your subscription. Please try again.';
+
+        // Handle duplicate subscriptions.
+        if (
+          response.status === 409 ||
+          /already subscribed|already exists|duplicate/i.test(
+            errorMessage
+          )
+        ) {
+          setStatus('sent');
+          setFeedback(
+            'This email address is already subscribed to our newsletter.'
+          );
+          setSubscriber('');
+          return;
+        }
+
+        throw new Error(errorMessage);
       }
 
+      // Subscription successfully accepted by the backend.
       setSubscriber('');
       setStatus('sent');
+
+      setFeedback(
+        result.message ||
+          'Thank you for subscribing! Your subscription has been received.'
+      );
     } catch (error) {
       console.error('Newsletter subscription error:', error);
+
       setStatus('error');
+
+      setFeedback(
+        error.message ||
+          'Sorry, we could not complete your subscription. Please try again.'
+      );
+    } finally {
+      subscriptionInProgress.current = false;
+    }
+  }
+
+  function handleSubscriberChange(event) {
+    setSubscriber(event.target.value);
+
+    if (status !== 'idle') {
+      setStatus('idle');
+      setFeedback('');
     }
   }
 
   return (
     <footer className="site-footer">
+
       {/* Gold line that sweeps across the top of the footer */}
       <span className="footer-line" aria-hidden="true" />
+
       <div className="container">
         <div className="footer-grid">
 
           {/* Brand and social links */}
           <div className="footer-brand">
-
             <div
               className="footer-secret-logo"
               onClick={handleLogoClick}
@@ -254,7 +329,6 @@ export default function Footer() {
               Zambia, and Namibia.
             </p>
           </div>
-
         </div>
 
         {/* Newsletter subscription */}
@@ -267,6 +341,7 @@ export default function Footer() {
           <form
             className="subscribe-form"
             onSubmit={handleSubscribe}
+            noValidate
           >
             <label
               htmlFor="subscribe-email"
@@ -283,16 +358,12 @@ export default function Footer() {
                 autoComplete="email"
                 placeholder="Your email address"
                 value={subscriber}
-                onChange={(event) => {
-                  setSubscriber(event.target.value);
-
-                  if (status !== 'idle') {
-                    setStatus('idle');
-                  }
-                }}
+                onChange={handleSubscriberChange}
                 required
                 maxLength={254}
                 disabled={status === 'sending'}
+                aria-invalid={status === 'error'}
+                aria-describedby="newsletter-feedback"
               />
 
               <button
@@ -311,18 +382,17 @@ export default function Footer() {
               updates from Alkebulan Global.
             </p>
 
-            <div aria-live="polite">
-              {status === 'sent' && (
-                <p className="subscribe-note" role="status">
-                  Thank you for subscribing! Please check your
-                  inbox for a welcome email.
-                </p>
-              )}
-
-              {status === 'error' && (
-                <p className="subscribe-note" role="alert">
-                  Sorry, we could not complete your subscription.
-                  Please try again.
+            <div
+              id="newsletter-feedback"
+              aria-live="polite"
+              aria-atomic="true"
+            >
+              {feedback && (
+                <p
+                  className="subscribe-note"
+                  role={status === 'error' ? 'alert' : 'status'}
+                >
+                  {feedback}
                 </p>
               )}
             </div>
@@ -362,7 +432,6 @@ export default function Footer() {
           aria-label="Opening administration portal"
         >
           <div className="cms-loader-content">
-
             <div className="cms-globe">
               <span className="cms-globe-meridian" />
               <span className="cms-globe-equator" />
@@ -378,7 +447,6 @@ export default function Footer() {
             <div className="cms-loading-line">
               <span />
             </div>
-
           </div>
         </div>
       )}
