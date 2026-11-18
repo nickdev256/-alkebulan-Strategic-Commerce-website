@@ -17,7 +17,7 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   // ==========================================
-  // VERIFY ADMINISTRATOR ACCESS
+  // VERIFY ADMINISTRATOR PROFILE
   // ==========================================
 
   const verifyAdmin = useCallback(async (authUser) => {
@@ -28,7 +28,7 @@ export function AuthProvider({ children }) {
 
     const { data, error } = await supabase
       .from('admin_users')
-      .select('id, email, full_name, role, created_at')
+      .select('id, email, full_name, role, status, created_at')
       .eq('id', authUser.id)
       .maybeSingle();
 
@@ -43,52 +43,25 @@ export function AuthProvider({ children }) {
       return null;
     }
 
+    // Only approved administrators are granted dashboard access.
+    // Pending and rejected profiles are returned for status checks,
+    // but they are never stored as authenticated administrators.
+    if (data.status !== 'approved') {
+      setAdmin(null);
+      return data;
+    }
+
     setAdmin(data);
     return data;
   }, []);
 
   // ==========================================
-  // HANDLE AUTHENTICATION STATE
+  // AUTHENTICATION STATE LISTENER
   // ==========================================
 
   useEffect(() => {
     let mounted = true;
-
-    const initialiseAuth = async () => {
-      try {
-        const {
-          data: { session },
-          error,
-        } = await supabase.auth.getSession();
-
-        if (error) throw error;
-
-        if (!mounted) return;
-
-        if (session?.user) {
-          setUser(session.user);
-
-          try {
-            await verifyAdmin(session.user);
-          } catch (verificationError) {
-            console.error(verificationError);
-          }
-        } else {
-          setUser(null);
-          setAdmin(null);
-        }
-      } catch (error) {
-        console.error('Authentication initialisation error:', error);
-        if (mounted) {
-          setUser(null);
-          setAdmin(null);
-        }
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
-
-    initialiseAuth();
+    let verificationRequest = 0;
 
     const {
       data: { subscription },
@@ -96,38 +69,55 @@ export function AuthProvider({ children }) {
       if (!mounted) return;
 
       if (event === 'SIGNED_OUT' || !session?.user) {
+        verificationRequest += 1;
+
         setUser(null);
         setAdmin(null);
         setLoading(false);
         return;
       }
 
+      const currentRequest = ++verificationRequest;
+
       setUser(session.user);
 
-      // Defer database verification to avoid running Supabase
-      // queries inside the auth event callback.
-      if (
-        event === 'SIGNED_IN' ||
-        event === 'TOKEN_REFRESHED' ||
-        event === 'USER_UPDATED' ||
-        event === 'INITIAL_SESSION'
-      ) {
-        Promise.resolve().then(async () => {
-          if (!mounted) return;
+      // Run Supabase database requests outside the auth callback.
+      Promise.resolve().then(async () => {
+        if (!mounted || currentRequest !== verificationRequest) return;
 
-          try {
-            await verifyAdmin(session.user);
-          } catch (error) {
-            console.error('Admin verification error:', error);
-          } finally {
-            if (mounted) setLoading(false);
+        try {
+          const adminProfile = await verifyAdmin(session.user);
+
+          if (!mounted || currentRequest !== verificationRequest) return;
+
+          // IMPORTANT:
+          // Do not sign out pending users here.
+          // OTP verification may trigger SIGNED_IN before the
+          // AdminRegister component inserts their pending profile.
+          //
+          // Pending and rejected users remain blocked because
+          // isAuthenticated requires an approved admin profile.
+
+          if (!adminProfile || adminProfile.status !== 'approved') {
+            setAdmin(null);
           }
-        });
-      }
+        } catch (error) {
+          console.error('Administrator authentication error:', error);
+
+          if (mounted && currentRequest === verificationRequest) {
+            setAdmin(null);
+          }
+        } finally {
+          if (mounted && currentRequest === verificationRequest) {
+            setLoading(false);
+          }
+        }
+      });
     });
 
     return () => {
       mounted = false;
+      verificationRequest += 1;
       subscription.unsubscribe();
     };
   }, [verifyAdmin]);
@@ -149,6 +139,7 @@ export function AuthProvider({ children }) {
     }
 
     if (!data.user) {
+      await supabase.auth.signOut();
       throw new Error('Unable to authenticate this account.');
     }
 
@@ -158,25 +149,41 @@ export function AuthProvider({ children }) {
       const adminProfile = await verifyAdmin(data.user);
 
       if (!adminProfile) {
-        await supabase.auth.signOut();
-        setUser(null);
-        setAdmin(null);
-
         throw new Error(
           'This account is not authorised to access the administration portal.'
         );
       }
+
+      if (adminProfile.status === 'pending') {
+        throw new Error(
+          'Your email is verified, but your administrator account is awaiting approval from the CMS owner.'
+        );
+      }
+
+      if (adminProfile.status === 'rejected') {
+        throw new Error(
+          'Your administrator access request has been rejected. Please contact the website owner.'
+        );
+      }
+
+      if (adminProfile.status !== 'approved') {
+        throw new Error(
+          'Your administrator account is not currently authorised.'
+        );
+      }
+
+      setUser(data.user);
+      setAdmin(adminProfile);
 
       return {
         user: data.user,
         admin: adminProfile,
       };
     } catch (error) {
-      if (!error.message.includes('not authorised')) {
-        await supabase.auth.signOut();
-        setUser(null);
-        setAdmin(null);
-      }
+      await supabase.auth.signOut();
+
+      setUser(null);
+      setAdmin(null);
 
       throw error;
     }
@@ -243,64 +250,33 @@ export function AuthProvider({ children }) {
   };
 
   // ==========================================
-  // INVITATION REGISTRATION
+  // AUTHENTICATION STATUS
   // ==========================================
 
-  const completeInvitation = async (fullName, password) => {
-    if (!fullName?.trim()) {
-      throw new Error('Please enter your full name.');
-    }
+  const isAdmin = Boolean(
+    user &&
+    admin &&
+    admin.id === user.id &&
+    admin.status === 'approved'
+  );
 
-    if (!password || password.length < 8) {
-      throw new Error('Your password must contain at least 8 characters.');
-    }
-
-    const {
-      data: { session },
-      error: sessionError,
-    } = await supabase.auth.getSession();
-
-    if (sessionError) {
-      throw new Error(sessionError.message);
-    }
-
-    if (!session?.user) {
-      throw new Error(
-        'Your invitation session is invalid or has expired. Please open your invitation link again.'
-      );
-    }
-
-    const { data, error } = await supabase.auth.updateUser({
-      password,
-      data: {
-        full_name: fullName.trim(),
-      },
-    });
-
-    if (error) {
-      throw new Error(error.message);
-    }
-
-    setUser(data.user);
-
-    return data.user;
-  };
-
-  // ==========================================
-  // CONTEXT VALUE
-  // ==========================================
+  const isOwner = Boolean(
+    isAdmin && admin.role === 'owner'
+  );
 
   const value = {
     user,
     admin,
     loading,
-    isAuthenticated: Boolean(user),
-    isAdmin: Boolean(admin),
+
+    isAuthenticated: isAdmin,
+    isAdmin,
+    isOwner,
+
     login,
     logout,
     resetPassword,
     updatePassword,
-    completeInvitation,
     verifyAdmin,
   };
 

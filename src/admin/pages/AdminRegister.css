@@ -1,48 +1,152 @@
+/* ==========================================================================
+   ADMIN REGISTER (extra pieces on top of the shared AdminLogin.css styles)
+   ========================================================================== */
 
+/* "Verification email sent to ..." box */
 .ag-register-invited-email {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  padding: 13px 15px;
-  margin-bottom: 22px;
-  background: #f8f5ed;
+  gap: 4px;
+  margin-bottom: 20px;
+  padding: 13px 16px;
+  background: linear-gradient(135deg, rgba(251, 245, 230, 0.95), rgba(244, 233, 205, 0.85));
+  border: 1px solid rgba(183, 149, 82, 0.25);
   border-left: 3px solid #b79552;
+  border-radius: 12px;
 }
 
 .ag-register-invited-email span {
-  color: #8993a2;
+  color: #8a7a55;
   font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
 }
 
 .ag-register-invited-email strong {
   color: #17263c;
-  font-size: 12px;
+  font-size: 13px;
   overflow-wrap: anywhere;
 }
 
+/* Verification code input: big, spaced digits */
+#register-otp {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+#register-otp::placeholder {
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: normal;
+}
+
+/* Secondary actions under the verify button */
+.ag-register-resend,
+.ag-register-back {
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 10px;
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.ag-register-resend {
+  color: #8c6424;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(167, 129, 53, 0.35);
+}
+
+.ag-register-resend:hover:not(:disabled) {
+  background: rgba(216, 182, 106, 0.16);
+  border-color: rgba(167, 129, 53, 0.55);
+}
+
+.ag-register-back {
+  color: #5d6878;
+  background: transparent;
+  border: 1px solid transparent;
+}
+
+.ag-register-back:hover {
+  color: #10213a;
+  background: rgba(16, 33, 58, 0.05);
+}
+
+.ag-register-resend:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Spin the refresh icon while a new code is being sent */
+.ag-register-resend:disabled svg {
+  animation: ag-auth-spin 1s linear infinite;
+}
+
+/* Success state */
 .ag-register-success {
-  padding: 25px 10px;
+  padding: 10px 4px 4px;
   text-align: center;
 }
 
-.ag-register-success svg {
+.ag-register-success > svg {
+  padding: 14px;
+  width: 66px;
+  height: 66px;
   color: #b79552;
+  background: linear-gradient(135deg, #fbf5e6 0%, #f1e3bf 100%);
+  border-radius: 50%;
+  box-shadow: 0 10px 24px rgba(167, 129, 53, 0.2);
+  animation: ag-register-pop 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.3) both;
 }
 
 .ag-register-success h2 {
-  margin: 15px 0 8px;
+  margin: 18px 0 8px;
   color: #10213a;
   font-size: 21px;
 }
 
 .ag-register-success p {
-  color: #758092;
+  margin: 0 0 10px;
+  color: #6b7687;
   font-size: 12px;
   line-height: 1.7;
+}
+
+.ag-register-success .ag-auth-submit {
+  margin-top: 18px;
 }
 
 .ag-register-loading {
   color: #d8b66a;
   font-size: 13px;
   letter-spacing: 1px;
+}
+
+@keyframes ag-register-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ag-register-success > svg,
+  .ag-register-resend:disabled svg {
+    animation: none;
+  }
 }

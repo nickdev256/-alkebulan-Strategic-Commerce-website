@@ -4,167 +4,454 @@ import { supabase } from '../config/supabase.js';
 const REGISTRATION_REDIRECT =
   'https://www.alkebulan-global.com/admin/register';
 
-const allowedRoles = ['admin', 'editor'];
+const ALLOWED_ROLES = ['admin', 'editor'];
 
-/**
- * Invite an administrator.
- * Only an existing CMS owner may use this endpoint.
- */
-export async function inviteAdministrator(req, res) {
-  try {
-    const authorization = req.headers.authorization || '';
+// ==========================================
+// SHARED HELPERS
+// ==========================================
 
-    if (!authorization.startsWith('Bearer ')) {
-      return res.status(401).json({
-        success: false,
-        message: 'Authentication is required.',
-      });
-    }
+const sendError = (res, status, message) => {
+  return res.status(status).json({
+    success: false,
+    message,
+  });
+};
 
-    const accessToken = authorization.slice(7);
+const getAuthenticatedUser = async (req) => {
+  const authorization = req.headers.authorization || '';
 
-    // Verify the caller's Supabase access token.
-    const {
-      data: { user: requestingUser },
-      error: authError,
-    } = await supabase.auth.getUser(accessToken);
+  if (!authorization.startsWith('Bearer ')) {
+    throw new Error('AUTH_REQUIRED');
+  }
 
-    if (authError || !requestingUser) {
-      return res.status(401).json({
-        success: false,
-        message: 'Your session is invalid or has expired. Please log in again.',
-      });
-    }
+  const accessToken = authorization.slice(7).trim();
 
-    // Check the caller's actual CMS role.
-    const { data: requestingAdmin, error: profileError } = await supabase
-      .from('admin_users')
-      .select('id, email, role')
-      .eq('id', requestingUser.id)
-      .maybeSingle();
+  if (!accessToken) {
+    throw new Error('AUTH_REQUIRED');
+  }
 
-    if (profileError) {
-      console.error('Admin permission lookup failed:', profileError);
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser(accessToken);
 
-      return res.status(500).json({
-        success: false,
-        message: 'Unable to verify your administrator permissions.',
-      });
-    }
+  if (error || !user) {
+    throw new Error('INVALID_SESSION');
+  }
 
-    if (!requestingAdmin || requestingAdmin.role !== 'owner') {
-      return res.status(403).json({
-        success: false,
-        message: 'Only the CMS owner can invite administrators.',
-      });
-    }
+  return user;
+};
 
-    // Validate request fields.
-    const email = String(req.body.email || '').trim().toLowerCase();
-    const fullName = String(req.body.fullName || '').trim();
-    const role = String(req.body.role || 'admin').trim().toLowerCase();
+// Only an approved owner can manage administrator accounts.
+const getOwner = async (req) => {
+  const user = await getAuthenticatedUser(req);
 
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please provide a valid email address.',
-      });
-    }
+  const { data: administrator, error } = await supabase
+    .from('admin_users')
+    .select('id, email, full_name, role, status')
+    .eq('id', user.id)
+    .maybeSingle();
 
-    if (fullName.length < 2 || fullName.length > 100) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please provide a name between 2 and 100 characters.',
-      });
-    }
+  if (error) {
+    console.error('Owner lookup failed:', error);
+    throw new Error('ADMIN_LOOKUP_FAILED');
+  }
 
-    // Do not allow an invitation request to create another owner.
-    if (!allowedRoles.includes(role)) {
-      return res.status(400).json({
-        success: false,
-        message: 'The assigned role must be admin or editor.',
-      });
-    }
+  if (
+    !administrator ||
+    administrator.role !== 'owner' ||
+    administrator.status !== 'approved'
+  ) {
+    throw new Error('OWNER_REQUIRED');
+  }
 
-    // Prevent duplicate CMS profiles.
-    const { data: existingProfile, error: existingError } = await supabase
-      .from('admin_users')
-      .select('id, email')
-      .eq('email', email)
-      .maybeSingle();
+  return { user, administrator };
+};
 
-    if (existingError) {
-      throw existingError;
-    }
+const handleControllerError = (res, error, context) => {
+  console.error(`${context}:`, error);
 
-    if (existingProfile) {
-      return res.status(409).json({
-        success: false,
-        message: 'This email already has CMS administrator access.',
-      });
-    }
-
-    // Send the Supabase invitation to the live registration page.
-    const { data: invitation, error: invitationError } =
-      await supabase.auth.admin.inviteUserByEmail(email, {
-        redirectTo: REGISTRATION_REDIRECT,
-        data: {
-          full_name: fullName,
-        },
-      });
-
-    if (invitationError) {
-      console.error('Supabase invitation failed:', invitationError);
-
-      return res.status(400).json({
-        success: false,
-        message: invitationError.message,
-      });
-    }
-
-    if (!invitation.user) {
-      throw new Error('Supabase did not return the invited user.');
-    }
-
-    // Assign the CMS role before the recipient accepts the invitation.
-    const { error: profileInsertError } = await supabase
-      .from('admin_users')
-      .insert({
-        id: invitation.user.id,
-        email,
-        full_name: fullName,
-        role,
-      });
-
-    if (profileInsertError) {
-      console.error(
-        'Administrator profile creation failed:',
-        profileInsertError
+  switch (error.message) {
+    case 'AUTH_REQUIRED':
+      return sendError(
+        res,
+        401,
+        'Authorization token is required.'
       );
 
-      return res.status(500).json({
-        success: false,
-        message:
-          'The invitation was created, but the CMS profile could not be assigned. Please contact the system owner.',
-      });
+    case 'INVALID_SESSION':
+      return sendError(
+        res,
+        401,
+        'Your session is invalid or expired.'
+      );
+
+    case 'OWNER_REQUIRED':
+      return sendError(
+        res,
+        403,
+        'Only the approved CMS owner can perform this action.'
+      );
+
+    case 'ADMIN_LOOKUP_FAILED':
+      return sendError(
+        res,
+        500,
+        'Unable to verify administrator permissions.'
+      );
+
+    default:
+      return sendError(
+        res,
+        500,
+        'An unexpected server error occurred.'
+      );
+  }
+};
+
+const isValidEmail = (email) => {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+};
+
+// ==========================================
+// INVITE ADMINISTRATOR
+// POST /api/admin/invitations
+// ==========================================
+
+// Retained for owner-issued invitations.
+// Normal self-registration now happens through Supabase OTP.
+export const inviteAdministrator = async (req, res) => {
+  try {
+    const { user: inviter } = await getOwner(req);
+
+    const { email, fullName, role } = req.body || {};
+
+    const normalizedEmail = String(email || '')
+      .trim()
+      .toLowerCase();
+
+    const normalizedName = String(fullName || '').trim();
+
+    if (!normalizedEmail || !normalizedName || !role) {
+      return sendError(
+        res,
+        400,
+        'Email, full name and administrator role are required.'
+      );
+    }
+
+    if (!isValidEmail(normalizedEmail)) {
+      return sendError(
+        res,
+        400,
+        'Please provide a valid email address.'
+      );
+    }
+
+    if (!ALLOWED_ROLES.includes(role)) {
+      return sendError(
+        res,
+        400,
+        'The selected administrator role is not permitted.'
+      );
+    }
+
+    const { data: existingAdministrator, error: lookupError } =
+      await supabase
+        .from('admin_users')
+        .select('id, email, status')
+        .eq('email', normalizedEmail)
+        .maybeSingle();
+
+    if (lookupError) throw lookupError;
+
+    if (existingAdministrator) {
+      return sendError(
+        res,
+        409,
+        'This email already has an administrator record.'
+      );
+    }
+
+    const {
+      data: invitationData,
+      error: invitationError,
+    } = await supabase.auth.admin.inviteUserByEmail(
+      normalizedEmail,
+      {
+        data: {
+          full_name: normalizedName,
+          invited_by: inviter.id,
+        },
+        redirectTo: REGISTRATION_REDIRECT,
+      }
+    );
+
+    if (invitationError) {
+      console.error('Supabase invitation error:', invitationError);
+
+      return sendError(
+        res,
+        400,
+        invitationError.message ||
+          'Unable to send administrator invitation.'
+      );
+    }
+
+    const invitedUser = invitationData?.user;
+
+    if (!invitedUser?.id) {
+      return sendError(
+        res,
+        500,
+        'The invitation was sent but the user record was not returned.'
+      );
+    }
+
+    const { data: administrator, error: insertError } =
+      await supabase
+        .from('admin_users')
+        .insert({
+          id: invitedUser.id,
+          email: normalizedEmail,
+          full_name: normalizedName,
+          role,
+          status: 'pending',
+        })
+        .select('id, email, full_name, role, status, created_at')
+        .single();
+
+    if (insertError) {
+      console.error(
+        'Administrator profile insert error:',
+        insertError
+      );
+
+      const { error: cleanupError } =
+        await supabase.auth.admin.deleteUser(invitedUser.id);
+
+      if (cleanupError) {
+        console.error(
+          'Could not clean up invited Auth user:',
+          cleanupError
+        );
+      }
+
+      throw insertError;
     }
 
     return res.status(201).json({
       success: true,
-      message: `An administrator invitation has been sent to ${email}.`,
-      administrator: {
-        id: invitation.user.id,
-        email,
-        fullName,
-        role,
-      },
+      message: 'Administrator invitation sent successfully.',
+      administrator,
     });
   } catch (error) {
-    console.error('Administrator invitation error:', error);
-
-    return res.status(500).json({
-      success: false,
-      message: 'An unexpected error occurred while sending the invitation.',
-    });
+    return handleControllerError(
+      res,
+      error,
+      'Invite administrator error'
+    );
   }
-}
+};
+
+// ==========================================
+// GET PENDING ADMINISTRATORS
+// GET /api/admin/pending
+// ==========================================
+
+export const getPendingAdministrators = async (req, res) => {
+  try {
+    await getOwner(req);
+
+    const { data: administrators, error } = await supabase
+      .from('admin_users')
+      .select('id, email, full_name, role, status, created_at')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    return res.status(200).json({
+      success: true,
+      administrators: administrators || [],
+      count: administrators?.length || 0,
+    });
+  } catch (error) {
+    return handleControllerError(
+      res,
+      error,
+      'Get pending administrators error'
+    );
+  }
+};
+
+// ==========================================
+// APPROVE ADMINISTRATOR
+// PATCH /api/admin/:id/approve
+// ==========================================
+
+export const approveAdministrator = async (req, res) => {
+  try {
+    await getOwner(req);
+
+    const administratorId = String(req.params.id || '').trim();
+    const { role } = req.body || {};
+
+    if (!administratorId) {
+      return sendError(
+        res,
+        400,
+        'Administrator ID is required.'
+      );
+    }
+
+    if (!ALLOWED_ROLES.includes(role)) {
+      return sendError(
+        res,
+        400,
+        'Choose a valid administrator role: admin or editor.'
+      );
+    }
+
+    const { data: existingAdministrator, error: lookupError } =
+      await supabase
+        .from('admin_users')
+        .select('id, email, full_name, role, status')
+        .eq('id', administratorId)
+        .maybeSingle();
+
+    if (lookupError) throw lookupError;
+
+    if (!existingAdministrator) {
+      return sendError(
+        res,
+        404,
+        'Administrator record was not found.'
+      );
+    }
+
+    if (existingAdministrator.status !== 'pending') {
+      return sendError(
+        res,
+        409,
+        'This administrator request is no longer pending.'
+      );
+    }
+
+    const { data: administrator, error: updateError } =
+      await supabase
+        .from('admin_users')
+        .update({
+          role,
+          status: 'approved',
+        })
+        .eq('id', administratorId)
+        .eq('status', 'pending')
+        .select('id, email, full_name, role, status, created_at')
+        .maybeSingle();
+
+    if (updateError) throw updateError;
+
+    if (!administrator) {
+      return sendError(
+        res,
+        409,
+        'The request has already been processed.'
+      );
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Administrator approved successfully.',
+      administrator,
+    });
+  } catch (error) {
+    return handleControllerError(
+      res,
+      error,
+      'Approve administrator error'
+    );
+  }
+};
+
+// ==========================================
+// REJECT ADMINISTRATOR
+// PATCH /api/admin/:id/reject
+// ==========================================
+
+// Keep the profile and Auth account.
+// Recording status as rejected allows the login system
+// to distinguish rejected applicants from unknown users.
+export const rejectAdministrator = async (req, res) => {
+  try {
+    await getOwner(req);
+
+    const administratorId = String(req.params.id || '').trim();
+
+    if (!administratorId) {
+      return sendError(
+        res,
+        400,
+        'Administrator ID is required.'
+      );
+    }
+
+    const { data: existingAdministrator, error: lookupError } =
+      await supabase
+        .from('admin_users')
+        .select('id, email, full_name, role, status')
+        .eq('id', administratorId)
+        .maybeSingle();
+
+    if (lookupError) throw lookupError;
+
+    if (!existingAdministrator) {
+      return sendError(
+        res,
+        404,
+        'Administrator record was not found.'
+      );
+    }
+
+    if (existingAdministrator.status !== 'pending') {
+      return sendError(
+        res,
+        409,
+        'This administrator request is no longer pending.'
+      );
+    }
+
+    const { data: administrator, error: updateError } =
+      await supabase
+        .from('admin_users')
+        .update({
+          status: 'rejected',
+        })
+        .eq('id', administratorId)
+        .eq('status', 'pending')
+        .select('id, email, full_name, role, status, created_at')
+        .maybeSingle();
+
+    if (updateError) throw updateError;
+
+    if (!administrator) {
+      return sendError(
+        res,
+        409,
+        'The request has already been processed.'
+      );
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Administrator request rejected successfully.',
+      administrator,
+    });
+  } catch (error) {
+    return handleControllerError(
+      res,
+      error,
+      'Reject administrator error'
+    );
+  }
+};

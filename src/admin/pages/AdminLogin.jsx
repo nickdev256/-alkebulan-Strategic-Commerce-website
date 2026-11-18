@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Eye,
@@ -7,9 +7,11 @@ import {
   Mail,
   ArrowRight,
   ShieldCheck,
+  UserPlus,
 } from 'lucide-react';
 
 import { useAuth } from '../context/AuthContext';
+import AuthLayout from '../components/AuthLayout';
 import './AdminLogin.css';
 
 export default function AdminLogin() {
@@ -24,11 +26,11 @@ export default function AdminLogin() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  const redirectTo = location.state?.from?.pathname || '/admin/dashboard';
+  const redirectTo =
+    location.state?.from?.pathname || '/admin/dashboard';
 
-  // Redirect only after React has completed rendering.
   useEffect(() => {
-    if (!loading && user && admin) {
+    if (!loading && user && admin?.status === 'approved') {
       navigate(redirectTo, { replace: true });
     }
   }, [loading, user, admin, navigate, redirectTo]);
@@ -46,7 +48,6 @@ export default function AdminLogin() {
 
     try {
       await login(email, password);
-      // Auth state will update and the effect above performs the redirect.
     } catch (err) {
       setError(
         err.message || 'Unable to sign in. Please check your credentials.'
@@ -56,15 +57,12 @@ export default function AdminLogin() {
     }
   };
 
-  if (!loading && user && admin) {
+  if (!loading && user && admin?.status === 'approved') {
     return null;
   }
 
   return (
-    <div className="ag-auth-page">
-      <div className="ag-auth-decoration ag-auth-decoration--one" />
-      <div className="ag-auth-decoration ag-auth-decoration--two" />
-
+    <AuthLayout>
       <div className="ag-auth-container">
         <Link to="/" className="ag-auth-brand">
           <span className="ag-auth-brand-mark">AG</span>
@@ -145,7 +143,9 @@ export default function AdminLogin() {
                   type="button"
                   className="ag-auth-password-toggle"
                   onClick={() => setShowPassword((visible) => !visible)}
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-label={
+                    showPassword ? 'Hide password' : 'Show password'
+                  }
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
@@ -162,6 +162,16 @@ export default function AdminLogin() {
             </button>
           </form>
 
+          <div className="ag-auth-register">
+            <p>Don't have an administrator account?</p>
+
+            <Link to="/admin/register">
+              <UserPlus size={17} />
+              Register here
+              <ArrowRight size={16} />
+            </Link>
+          </div>
+
           <div className="ag-auth-security">
             <ShieldCheck size={17} />
             <span>Protected administrator access</span>
@@ -177,6 +187,6 @@ export default function AdminLogin() {
           Return to website
         </Link>
       </div>
-    </div>
+    </AuthLayout>
   );
 }

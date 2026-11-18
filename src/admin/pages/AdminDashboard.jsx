@@ -1,5 +1,3 @@
-
-
 import { useCallback, useEffect, useState } from 'react';
 
 import { useNavigate } from 'react-router-dom';
@@ -54,6 +52,14 @@ import {
 
   Newspaper,
 
+  Sunrise,
+
+  Sun,
+
+  Sunset,
+
+  MoonStar,
+
 } from 'lucide-react';
 
 import { useAuth } from '../context/AuthContext';
@@ -71,8 +77,9 @@ import './AdminDashboard.css';
 // ==========================================
 
 const API_URL = (
-  import.meta.env.VITE_API_URL ||
-  (import.meta.env.DEV ? 'http://localhost:5000' : '')
+
+  import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000' : '')
+
 ).replace(/\/+$/, '');
 
 const GLOBE_EDGE_LAYERS = 12;
@@ -102,64 +109,6 @@ const navigation = [
   { label: 'Settings', icon: Settings },
 
   { label: 'User Approvals', icon: ShieldCheck, ownerOnly: true },
-
-];
-
-// ==========================================
-
-// DASHBOARD STATISTICS
-
-// ==========================================
-
-const statistics = [
-
-  {
-
-    label: 'Website Pages',
-
-    value: '12',
-
-    note: 'Content sections',
-
-    icon: FileText,
-
-  },
-
-  {
-
-    label: 'Portfolio Projects',
-
-    value: '08',
-
-    note: 'Published projects',
-
-    icon: BriefcaseBusiness,
-
-  },
-
-  {
-
-    label: 'Team Members',
-
-    value: '06',
-
-    note: 'Active profiles',
-
-    icon: Users,
-
-  },
-
-  {
-
-    label: 'Contact Messages',
-
-    value: '24',
-
-    note: 'Enquiries received',
-
-    icon: Mail,
-
-  },
 
 ];
 
@@ -225,46 +174,6 @@ const quickLinks = [
 
 // ==========================================
 
-// RECENT ACTIVITIES
-
-// ==========================================
-
-const activities = [
-
-  {
-
-    title: 'CMS dashboard initialized',
-
-    description: 'Your administration workspace is ready.',
-
-    time: 'Just now',
-
-  },
-
-  {
-
-    title: 'Website content',
-
-    description: 'Manage your public website information.',
-
-    time: 'Workspace',
-
-  },
-
-  {
-
-    title: 'Portfolio management',
-
-    description: 'Review and update your projects.',
-
-    time: 'Workspace',
-
-  },
-
-];
-
-// ==========================================
-
 // HELPERS
 
 // ==========================================
@@ -315,17 +224,63 @@ const formatDate = (date) => {
 
 };
 
-const getGreeting = () => {
+// Greeting for the administrator's own local time of day.
+//   05:00 - 11:59  Good morning
+//   12:00 - 16:59  Good afternoon
+//   17:00 - 20:59  Good evening
+//   21:00 - 04:59  Working late
+const getGreeting = (date) => {
 
-  const hour = new Date().getHours();
+  const hour = date.getHours();
 
-  if (hour < 12) return 'Good morning';
+  if (hour >= 5 && hour < 12) {
+    return {
+      text: 'Good morning',
+      icon: Sunrise,
+      message:
+        'A fresh start. Update your content, review messages and keep your website moving today.',
+    };
+  }
 
-  if (hour < 18) return 'Good afternoon';
+  if (hour >= 12 && hour < 17) {
+    return {
+      text: 'Good afternoon',
+      icon: Sun,
+      message:
+        'Here is the latest across your website. Manage content, campaigns and enquiries from one place.',
+    };
+  }
 
-  return 'Good evening';
+  if (hour >= 17 && hour < 21) {
+    return {
+      text: 'Good evening',
+      icon: Sunset,
+      message:
+        'Welcome back.',
+    };
+  }
+
+  return {
+    text: 'Working late',
+    icon: MoonStar,
+    message:
+      'The night is quiet, but your website is still live. Review messages and manage content before tomorrow.',
+  };
 
 };
+
+const formatClockDate = (date) =>
+  date.toLocaleDateString(undefined, {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  });
+
+const formatClockTime = (date) =>
+  date.toLocaleTimeString(undefined, {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 
 // ==========================================
 
@@ -335,7 +290,7 @@ const getGreeting = () => {
 
 export default function AdminDashboard() {
 
-  const { admin, user, logout } = useAuth();
+  const { admin, user, logout, isOwner } = useAuth();
 
   const navigate = useNavigate();
 
@@ -360,6 +315,17 @@ export default function AdminDashboard() {
   const [processingUser, setProcessingUser] = useState(null);
 
   const [selectedRoles, setSelectedRoles] = useState({});
+
+  // Live data used by the dashboard overview.
+  const [dashboardStats, setDashboardStats] = useState({
+    administrators: null,
+    subscribers: null,
+    campaigns: null,
+    messages: null,
+  });
+  const [recentActivities, setRecentActivities] = useState([]);
+  const [dashboardLoading, setDashboardLoading] = useState(true);
+  const [dashboardError, setDashboardError] = useState('');
 
   // Keep the newsletter dashboard supplied with the current Supabase token.
   useEffect(() => {
@@ -405,27 +371,156 @@ export default function AdminDashboard() {
     };
   }, []);
 
+  // Live clock: re-renders on every new minute so the greeting switches
+  // (e.g. morning -> afternoon) without reloading the page.
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    let timer;
+
+    const msUntilNextMinute = () => 60000 - (Date.now() % 60000) + 50;
+
+    const tick = () => {
+      setNow(new Date());
+      timer = setTimeout(tick, msUntilNextMinute());
+    };
+
+    // Browsers slow down timers in background tabs; catch up on return.
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        clearTimeout(timer);
+        tick();
+      }
+    };
+
+    timer = setTimeout(tick, msUntilNextMinute());
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, []);
+
+  const greeting = getGreeting(now);
+  const GreetingIcon = greeting.icon;
+
   const fullName =
 
-    admin?.full_name ||
-
-    user?.user_metadata?.full_name ||
+    (admin?.full_name || user?.user_metadata?.full_name || '').trim() ||
 
     'Administrator';
 
-  const firstName = fullName.split(' ')[0];
+  // "Jane Doe" -> "Jane"; extra spaces are ignored.
+  const firstName = fullName.split(/\s+/)[0];
 
-  const isOwner =
-
-    admin?.role === 'owner' &&
-
-    admin?.status === 'approved';
-
+  // AuthContext only exposes approved administrators.
   const roleLabel = isOwner
 
     ? 'CMS Owner'
 
     : admin?.role || 'Administrator';
+
+  // ==========================================
+  // LOAD LIVE OVERVIEW DATA FROM SUPABASE
+  // ==========================================
+
+  const loadDashboardData = useCallback(async () => {
+    setDashboardLoading(true);
+    setDashboardError('');
+
+    const fetchCount = async (table) => {
+      const { count, error } = await supabase
+        .from(table)
+        .select('*', { count: 'exact', head: true });
+
+      if (error) {
+        console.error(`Dashboard count failed for ${table}:`, error);
+        return null;
+      }
+
+      return count ?? 0;
+    };
+
+    try {
+      const [administrators, subscribers, campaigns, messages] =
+        await Promise.all([
+          fetchCount('admin_users'),
+          fetchCount('newsletter_subscribers'),
+          fetchCount('newsletter_campaigns'),
+          fetchCount('contact_enquiries'),
+        ]);
+
+      setDashboardStats({
+        administrators,
+        subscribers,
+        campaigns,
+        messages,
+      });
+
+      const { data: enquiries, error: enquiriesError } = await supabase
+        .from('contact_enquiries')
+        .select('id, full_name, created_at')
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (enquiriesError) {
+        console.error('Recent contact enquiries could not be loaded:', enquiriesError);
+        setRecentActivities([]);
+      } else {
+        setRecentActivities(
+          (enquiries || []).map((enquiry) => ({
+            id: enquiry.id,
+            title: 'New contact enquiry',
+            description: `Received from ${enquiry.full_name || 'Website visitor'}`,
+            time: formatDate(enquiry.created_at),
+          }))
+        );
+      }
+
+      if ([administrators, subscribers, campaigns, messages].every((value) => value === null)) {
+        setDashboardError(
+          'Dashboard data could not be loaded. Check your Supabase table permissions and Row Level Security policies.'
+        );
+      }
+    } catch (error) {
+      console.error('Dashboard data loading failed:', error);
+      setDashboardError(error.message || 'Unable to load dashboard data.');
+    } finally {
+      setDashboardLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadDashboardData();
+  }, [loadDashboardData]);
+
+  const statistics = [
+    {
+      label: 'Administrators',
+      value: dashboardStats.administrators,
+      note: 'Registered CMS administrators',
+      icon: Users,
+    },
+    {
+      label: 'Newsletter Subscribers',
+      value: dashboardStats.subscribers,
+      note: 'Registered newsletter subscribers',
+      icon: Mail,
+    },
+    {
+      label: 'Newsletter Campaigns',
+      value: dashboardStats.campaigns,
+      note: 'Created newsletter campaigns',
+      icon: Newspaper,
+    },
+    {
+      label: 'Contact Messages',
+      value: dashboardStats.messages,
+      note: 'Website enquiries received',
+      icon: Mail,
+    },
+  ];
 
   // ==========================================
 
@@ -542,7 +637,6 @@ export default function AdminDashboard() {
     }
 
   }, [isOwner]);
-
   // ==========================================
 
   // APPROVE OR REJECT REGISTRATION
@@ -1016,7 +1110,6 @@ export default function AdminDashboard() {
     (item) => !item.ownerOnly || isOwner
 
   );
-
   return (
 
     <div className="ag-dashboard">
@@ -1379,25 +1472,39 @@ export default function AdminDashboard() {
 
             <div className="ag-dashboard-welcome-text">
 
-              <span className="ag-dashboard-eyebrow">
+              <div className="ag-dashboard-welcome-meta">
 
-                ALKEBULAN GLOBAL CMS
+                <span className="ag-dashboard-eyebrow">
 
-              </span>
+                  ALKEBULAN GLOBAL CMS
+
+                </span>
+
+                <span className="ag-dashboard-clock">
+
+                  <GreetingIcon size={14} aria-hidden="true" />
+
+                  <time dateTime={now.toISOString()}>
+
+                    {formatClockDate(now)}
+
+                    <i aria-hidden="true">·</i>
+
+                    {formatClockTime(now)}
+
+                  </time>
+
+                </span>
+
+              </div>
 
               <h2>
 
-                {getGreeting()}, {firstName}.
+                {greeting.text}, {firstName}.
 
               </h2>
 
-              <p>
-
-                Manage your website, update your content and oversee
-
-                your digital presence from one place.
-
-              </p>
+              <p>{greeting.message}</p>
 
               <div className="ag-dashboard-welcome-actions">
 
@@ -1573,16 +1680,29 @@ export default function AdminDashboard() {
 
                   </div>
 
-                  <span className="ag-dashboard-updated">
-
+                  <div className="ag-dashboard-updated">
+                    <button
+                      type="button"
+                      className="ag-dashboard-icon-button"
+                      onClick={loadDashboardData}
+                      disabled={dashboardLoading}
+                      aria-label="Refresh dashboard data"
+                      title="Refresh dashboard data"
+                    >
+                      <RefreshCw size={15} className={dashboardLoading ? 'ag-approval-spinning' : ''} />
+                    </button>
                     <TrendingUp size={15} />
-
-                    CMS workspace
-
-                  </span>
+                    Live database data
+                  </div>
 
                 </div>
 
+                {dashboardError && (
+                  <div className="ag-approval-alert ag-approval-alert-error" role="alert">
+                    <AlertCircle size={18} />
+                    <span>{dashboardError}</span>
+                  </div>
+                )}
                 <div className="ag-dashboard-stat-grid">
 
                   {statistics.map((stat) => {
@@ -1611,7 +1731,13 @@ export default function AdminDashboard() {
 
                         </div>
 
-                        <strong>{stat.value}</strong>
+                        <strong>
+                          {dashboardLoading
+                            ? '…'
+                            : stat.value === null
+                              ? '—'
+                              : stat.value.toLocaleString()}
+                        </strong>
 
                         <h4>{stat.label}</h4>
 
@@ -1714,33 +1840,25 @@ export default function AdminDashboard() {
                   </div>
 
                   <div className="ag-dashboard-activities">
-
-                    {activities.map((activity) => (
-
-                      <div
-
-                        className="ag-dashboard-activity"
-
-                        key={activity.title}
-
-                      >
-
-                        <div className="ag-dashboard-activity-dot" />
-
-                        <div>
-
-                          <strong>{activity.title}</strong>
-
-                          <p>{activity.description}</p>
-
-                          <span>{activity.time}</span>
-
+                    {dashboardLoading ? (
+                      <p>Loading recent activity...</p>
+                    ) : recentActivities.length > 0 ? (
+                      recentActivities.map((activity) => (
+                        <div
+                          className="ag-dashboard-activity"
+                          key={activity.id}
+                        >
+                          <div className="ag-dashboard-activity-dot" />
+                          <div>
+                            <strong>{activity.title}</strong>
+                            <p>{activity.description}</p>
+                            <span>{activity.time}</span>
+                          </div>
                         </div>
-
-                      </div>
-
-                    ))}
-
+                      ))
+                    ) : (
+                      <p>No recent contact enquiries found.</p>
+                    )}
                   </div>
 
                 </div>

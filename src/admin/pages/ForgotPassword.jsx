@@ -1,8 +1,8 @@
-
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Mail, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import AuthLayout from '../components/AuthLayout';
 import './AdminLogin.css';
 
 export default function ForgotPassword() {
@@ -40,18 +40,20 @@ export default function ForgotPassword() {
   };
 
   return (
-    <main className="ag-auth-page">
+    <AuthLayout>
       <div className="ag-auth-container">
         <Link to="/admin/login" className="ag-auth-back">
           <ArrowLeft size={16} />
           Back to login
         </Link>
 
-        <div className="ag-auth-brand">
-          <div className="ag-auth-brand-mark">A</div>
-          <h1>ALKEBULAN GLOBAL</h1>
-          <span>STRATEGIC COMMERCE & DEVELOPMENT</span>
-        </div>
+        <Link to="/" className="ag-auth-brand">
+          <span className="ag-auth-brand-mark">AG</span>
+          <span>
+            <strong>ALKEBULAN GLOBAL</strong>
+            <small>STRATEGIC COMMERCE &amp; DEVELOPMENT</small>
+          </span>
+        </Link>
 
         <section className="ag-auth-card">
           <div className="ag-auth-icon">
@@ -113,6 +115,6 @@ export default function ForgotPassword() {
           All rights reserved.
         </p>
       </div>
-    </main>
+    </AuthLayout>
   );
 }
